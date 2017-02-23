@@ -90,8 +90,49 @@ C_{kk'} = \frac{Tr(\langle \delta_k \delta_k'^T \rangle)}{(Tr(\langle \delta_k \
 \end{equation}
 where $B_k = \langle \delta_k \delta_k^T \rangle$, and thus related to the B-factor. Then,
 \begin{equation}
-I_{ensemble} (\vec{q}) = \sum\limits_{k}\sum\limits_{k'}f_{k}f_{k'}e^{i\vec{q}(\vec{r_{k}} - \vec{r_{k'}})}e^{-\frac{1}{2}\vec{q}^2(B_k + B_{k'} - 2 C_{kk'}(B_k B_{k'})^\frac{1}{2})}
+I_{ensemble} (\vec{q}) = \sum\limits_{k}\sum\limits_{k'} f_{k}f_{k'}e^{i\vec{q}(\vec{r_{k}} - \vec{r_{k'}})}e^{-\frac{1}{2}\vec{q}^2(B_k + B_{k'} - 2 C_{kk'}(B_k B_{k'})^\frac{1}{2})}
 \end{equation}
+
+
+\subsection{Inference of the Correlation Matrix}
+
+Let us assume that we have many measurements of $I_\mathrm{ensemble}$ and wish to infer a model of the form just discussed. To do this, we may minimize the least squares loss function
+\[
+\mathcal{O} ( \{ C_{kk'} \} )= \sum_{\{\mathbf{q}\}} \left| I_\mathrm{esb}^\mathrm{obs} (\mathbf{q}) 
+- I_\mathrm{esb}^\mathrm{calc} (\mathbf{q}; \{ C_{kk'} \}) \right|^2
+\]
+where ``obs'' and ``calc'' indicate the observed and modeled values respectively. Our task is to vary $ \{ C_{kk'} \}$ to minimize $\mathcal{O}$. 
+
+Let $A_{k k'} (\mathbf{q}) \equiv f_{k}f_{k'} \exp \{ \, i \mathbf{q} (\mathbf{r_{k}}- \mathbf{r_{k'}}) - \frac{1}{2} q^2(B_k + B_{k'} ) \, \}$ and $\alpha_{k k'} \equiv (B_k B_{k'})^\frac{1}{2}$. Then we may write
+\[
+I_\mathrm{esb}^\mathrm{calc} (\mathbf{q}; \{ C_{kk'} \}) = \sum_{k k'} A_{k k'} (\mathbf{q}) \, e^{\alpha_{k k'} C_{k k'}}
+\]
+and the derivatives of the objective function take on a simple form
+\begin{align*}
+\frac{\partial \mathcal{O}} {\partial C_{kk'}} &= \sum_{\{\mathbf{q}\}}
+2 \alpha_{k k'} A_{k k'} e^{\alpha_{k k'} C_{k k'}} 
+\left( A_{k k'} e^{\alpha_{k k'} C_{k k'}} - I_\mathrm{esb}^\mathrm{obs}  \right) \\
+%
+&= \sum_{\{\mathbf{q}\}} 2 \alpha_{k k'} I_\mathrm{esb}^\mathrm{calc} \left[
+I_\mathrm{esb}^\mathrm{calc} - I_\mathrm{esb}^\mathrm{obs}
+\right]
+\end{align*}
+this shows the derivative is zero and the objective is at an extreme when $C_{kk'} = \hat{C}_{kk'}$ with
+\[
+\hat{C}_{kk'} = \sum_{\{\mathbf{q}\}} \alpha_{kk'}^{-1} 
+\log \frac{I_\mathrm{esb}^\mathrm{obs} (\mathbf{q}) }{A_{kk'} (\mathbf{q}) }
+\]
+computing the second derivative
+\[
+\frac{\partial^2 \mathcal{O}} {\partial C_{kk'}^2} = \sum_{\{\mathbf{q}\}}
+2 \alpha_{k k'}^2 A_{k k'} e^{\alpha_{k k'} C_{k k'}} 
+\left( 2 A_{k k'} e^{\alpha_{k k'} C_{k k'}} - I_\mathrm{esb}^\mathrm{obs} \right)
+\]
+and substituting $C = \hat{C}_{kk'}$
+\[
+\frac{\partial^2 \mathcal{O}} {\partial C_{kk'}^2} (\hat{C}_{kk'}) = \sum_{\{\mathbf{q}\}} 2 \alpha_{k k'}^2 I_\mathrm{esb}^{\mathrm{obs}\, 2}
+\]
+proves that this extremum is indeed the minimum and $\mathcal{O}$ is convex.
 
 \end{document}
 
