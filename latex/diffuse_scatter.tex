@@ -119,8 +119,9 @@ I_\mathrm{esb}^\mathrm{calc} - I_\mathrm{esb}^\mathrm{obs}
 \end{align*}
 this shows the derivative is zero and the objective is at an extreme when $C_{kk'} = \hat{C}_{kk'}$ with
 \[
-\hat{C}_{kk'} = \sum_{\{\mathbf{q}\}} \alpha_{kk'}^{-1} 
-\log \frac{I_\mathrm{esb}^\mathrm{obs} (\mathbf{q}) }{A_{kk'} (\mathbf{q}) }
+\hat{C}_{kk'} = \alpha_{kk'}^{-1} 
+\log \frac{ \sum_{\{\mathbf{q}\}} I_\mathrm{esb}^\mathrm{obs} (\mathbf{q}) A_{kk'} (\mathbf{q})}
+{\sum_{\{\mathbf{q}\}} A_{kk'}^2 (\mathbf{q}) }
 \]
 computing the second derivative
 \[
@@ -130,7 +131,9 @@ computing the second derivative
 \]
 and substituting $C = \hat{C}_{kk'}$
 \[
-\frac{\partial^2 \mathcal{O}} {\partial C_{kk'}^2} (\hat{C}_{kk'}) = \sum_{\{\mathbf{q}\}} 2 \alpha_{k k'}^2 I_\mathrm{esb}^{\mathrm{obs}\, 2}
+\frac{\partial^2 \mathcal{O}} {\partial C_{kk'}^2} (\hat{C}_{kk'}) =  2 \alpha_{k k'}^2 
+\frac{\sum_{\{\mathbf{q}\}} A_{kk'}^2 (\mathbf{q})I_\mathrm{esb}^{\mathrm{obs}\, 2}(\mathbf{q})}
+{\sum_{\{\mathbf{q}\}} A_{kk'}^2 (\mathbf{q})}
 \]
 proves that this extremum is indeed the minimum and $\mathcal{O}$ is convex.
 
