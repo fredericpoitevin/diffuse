@@ -22,77 +22,95 @@
 \begin{document}
 
 \section{Derivation of scattering intensities for different types of disorder}
-\subsection{The ideal lattice} 
-The intensity of scattered X-rays as a function of the wave vector, $\vec{q}$, from an ideal lattice can be described by: 
-\begin{equation}
-I(\vec{q}) = \vert \sum\limits_{n=1}^N f(\vec{q})e^{i\vec{q}\cdot\vec{r_n}}\vert^2
-\end{equation}
-where $\vec{r_n}$ is a unit lattice vector: $\vec{r_n}$ = $\vec{r_o}$ + $h$$\vec{r_x}$ + $k$$\vec{r_y}$ + $l$$\vec{r_z}$, with h, k, and l corresponding to the unit cell dimensions. The vector $\vec{r_o}$ can be taken to be the origin without any loss of generality. In one dimension, the above can be simplified to:
-\begin{equation}
-I(\vec{q}) = \vert f(\vec{q}) \vert^2   \vert \sum\limits_{h} e^{ih\theta}\vert^2
-\end{equation}
-by rewriting the dot product as an angle, $\theta$ = $\vec{q}$$\cdot$$\vec{r_x}$, where $\theta$ is real and $h$ is an integer. Consider the following two cases: when $\theta$ = 2$\pi$, the exponential term is unity and there is constructive interference that scales with the number of unit cells, N. When $\theta$ $\neq$ 2$\pi$, the exponent averages to 0, resulting in zero intensity due to destructive interference.
 
-\subsection{Lattice with translational disorder} 
-Assume that each unit cell is displaced from its mean lattice position, and that these displacements sample an independent and identically distributed (i.i.d.) Gaussian. In this case, a displacement term is added to the unit lattice vector: $\vec{r_h}$ = $h$$\vec{r_x}$ + $\vec{\Delta_h}$. The intensity of scattered X-rays is: 
-\begin{eqnarray*}
-I(\vec{q}) = \vert \sum\limits_{n=1}^N f(\vec{q})e^{i\vec{q}\cdot(h\vec{r_x} + \vec{\Delta_h})}\vert^2 
-= \vert f(\vec{q}) \vert^2 \sum\limits_{h} e^{i\vec{q}\cdot(h\vec{r_x} + \vec{\Delta_h})} \sum\limits_{h'} e^{-i\vec{q}\cdot(h'\vec{r_x} + \vec{\Delta_{h'}})} \\
-= \vert f(\vec{q}) \vert^2 \sum\limits_{h}\sum\limits_{h'} e^{i\vec{q}\cdot\vec{r_x}(h-h')+ i\vec{q}\cdot(\vec{\Delta_h} - \vec{\Delta_{h'}})} \\
-= \vert f(\vec{q}) \vert^2  [ \sum\limits_{h}e^{0} + \sum\limits_{h}\sum\limits_{h', h'\neq h} e^{i\vec{q}\cdot\vec{r_x}(h-h')+ i\vec{q}\cdot(\vec{\Delta_h} - \vec{\Delta_{h'}})} ]
-\end{eqnarray*}
-Because $\vec{\Delta_h}$ and $\vec{\Delta_{h'}}$ are i.i.d. Gaussians with means of zero, their difference is also an i.i.d. Gaussian with a mean of zero and standard deviation of 2$\sigma$$^2$: $\vec{\Delta_{h, h'}}\sim N(0, \sigma^2)$, and $G_{h-h'} = (\vec{\Delta_{h}} - \vec{\Delta_{h'}}) \sim N(0, 2\sigma^2)$. Note that the characteristic function, $\phi(t)$, of a random variable is the Fourier transform of its probability density function. In the case of a normal distribution, the characteristic function evaluates to: 
+\subsection{General expressions for Bragg and diffuse intensities}
+The most general form of the scattered intensity, $I$, at some wavevector $\vec{q}$ in reciprocal space is:
 \begin{equation}
-\phi(t) = \int p(t) e^{it\cdot x} = e^{i\mu t}\cdot e^{\frac{-1}{2}\sigma^2 h^2}
+I(\vec{q}) = \vert \sum\limits_{c} e^{-i \vec{q} \cdot \vec{u_c} } \sum\limits_{i} f_i e^{-i \vec{q} \cdot \vec{r_i}} e^{-i \vec{q} \cdot \vec{\delta_{ci}}(t)} \vert ^2
 \end{equation}
-The above, along with substitution of $\vec{q}\cdot\vec{r_x} =  \theta$, can then be used to simplify the equation for the scattered intensity as follows:
-\begin{eqnarray*}
-I(\vec{q}) = \vert f(\vec{q}) \vert^2 [ N + \sum\limits_{h}\sum\limits_{h', h'\neq h} e^{i\vec{q}\cdot\vec{r_x}(h-h')+ i\vec{q} G_{hh'}}] 
-= \vert f(\vec{q}) \vert^2 [ N + \sum\limits_{h}\sum\limits_{h', h'\neq h} e^{ih\theta} \int p(G_{hh'})e^{i\vec{q}G_{hh'}} dG_{hh'}] \\
-= \vert f(\vec{q}) \vert^2 [ N + \sum\limits_{h}\sum\limits_{h', h'\neq h} e^{ih\theta} e^{-\sigma^2\vec{q}^2}]
-= \vert f(\vec{q}) \vert^2 [ N + e^{-\sigma^2\vec{q}^2}\sum\limits_{h}\sum\limits_{h', h'\neq h} e^{ih\theta} ] \\
-= \vert f(\vec{q}) \vert^2 [ N(1-e^{-\sigma^2\vec{q}^2}) + e^{-\sigma^2\vec{q}^2}\sum\limits_{h}\sum\limits_{h'} e^{ih\theta} ]
-\end{eqnarray*}
-The first term corresponds to the Fourier transform of a single unit cell and does not contain phase information. The second term is the Bragg component and scales with N$^2$ due to the double sum, in contrast to the first term which scales with N, so dominates at $\theta = 2\pi$ conditions. It is modulated by the $e^{-\sigma^2\vec{q}^2}$ term, which diminishes the Bragg intensities with increasing resolution and displacement.
-
-\subsection{Lattice with configurational disorder}
-Assume that each atom is displaced from its mean position. The intensity of a single unit cell can be expressed as:
+where $\vec{u_c}$ is the vector from the origin of the coordinate system to the origin of unit cell c, $f_i$ is the atomic form factor of atom i, $r_i$ is the vector that describes the mean position of atom i relative to origin of the unit cell, and $\vec{\delta_{ci}}(t)$ is the instantaneous displacement vector of atom i in unit cell c. The Bragg component of $I(\vec{q})$ is determined by the average atomic positions and can be written as follows:
 \begin{equation}
-I_{cell}(\vec{q}) = \langle \vert \sum\limits_{k} f_k(\vec{q})e^{i\vec{q}\cdot\vec{r_k}}\vert^2 \rangle
+I(\vec{q})_{Bragg} = \sum\limits_{c,c'} e^{-i \vec{q} \cdot (\vec{u_c} - \vec{u_c'})} \sum\limits_{i,j} f_i f_j e^{-i \vec{q} (\vec{r_i} - \vec{r_j})} \langle e^{-i \vec{q} \cdot (\vec{\delta_{ci}}(t) - \vec{\delta_{c'j}}(t))} \rangle
 \end{equation}
-where $f_k$ is the atomic form factor and $\vec{r_k} = \vec{\mu_k} + \vec{\delta_k}$.
-Expanding the above,
+A probability model, $P$, for the displacement distribution of atom i must satisfy the following constraint:
 \begin{equation}
-I_{cell}(\vec{q}) = \sum\limits_{k} f_k(\vec{q})e^{i\vec{q}\cdot(\vec{r_k} + \vec{\delta_k})} \sum\limits_{k'} f_{k'}(\vec{q})e^{-i\vec{q}\cdot(\vec{r_{k'}} + \vec{\delta_{k'}})}
-= \sum\limits_{k}\sum\limits_{k'}f_{k}f_{k'}e^{i\vec{q}[(\vec{r_{k}} - \vec{r_{k'}}) + (\vec{\delta_{k}} - \vec{\delta_{k'}})]}
+\langle \vec{\delta_{i}} \rangle = \int P(\vec{\delta_{i}})\, \vec{\delta_{i}} \, d\vec{\delta_{i}} = 0
 \end{equation}
-Let $x_0 = \vec{r_k} - \vec{r_k'}$, $x = \vec{\delta_{k}} - \vec{\delta_{k'}}$, and P(x) be a multivariate Gaussian model for the atomic positional probabilities. Then the exponential term becomes:
+where the integration is over all unit cells. Thus, a multivariate Gaussian would suffice: for example, $P(\vec{\delta_{i}}) =e^{-\frac{1}{2} \vec{x}^\intercal V \vec{x}}$, where $V = \langle \vec{\delta_{i}} \, \vec{\delta_{i}}^\intercal \rangle$. Here it is assumed that $V$ is identical when evaluated for equivalent atoms in different unit cells: $V_{ci,ci} = V_{c'i,c'i}$.
+Then, the exponential decay term in the equation for $I(\vec{q})_{Bragg}$ can be evaluated as\footnotemark:
 \begin{equation}
-\int dx P(x) e^{i\vec{q^T}(\vec{x_0} + \vec{x})} = e^{i\vec{q^T} x_0} \int dx \frac{e^{\frac{-1}{2}\vec{x^T}V^{-1}\vec{x}} \cdot e^{i\vec{q^T}\vec{x}}} {\int dx e^{\frac{1}{2} \vec{x^T}V^{-1}\vec{x}}} = e^{i\vec{q^T}\vec{x_0}} \cdot Z^{-1} \int \frac{dx \cdot e^{ \frac{-1}{2}\vec{x^T}V^{-1}\vec{x} + i\vec{q^T}\vec{x}}}{Z^{-1} \cdot e^{- \frac{1}{2} \vec{q^T}V\vec{q}}}
+\langle e^{-i {\vec{q}} \cdot \vec{\delta}_{ci} } \rangle = \int P(\vec{\delta}_{ci})\, e^{-i \vec{\delta}_{ci} \cdot {\vec{q}}} \, d\vec{\delta}_{i,c} = e^{-\frac{1}{2} \vec{q}^\intercal V_{ci,ci} \vec{q} }
 \end{equation}
-where $Z = \int dx e^{\frac{1}{2} x^Tvx}$ is a normalization constant integrated over all of q-space. Because $x^Tv$ is symmetric and positive matrix, the expression in the integrand can be simplified to $e^{- \frac{1}{2} \vec{q^T}V_{kk'}\vec{q}}$, where $V_{kk'}=\langle \vec{x}\vec{x^T} \rangle$, by the definition of an n-dimensional Gaussian integral. Thus,
+and the equation for $I(\vec{q})_{Bragg}$ becomes:
 \begin{equation}
-I_{ensemble} (\vec{q}) = \sum\limits_{k}\sum\limits_{k'}f_{k}f_{k'}e^{i\vec{q}(\vec{r_{k}} - \vec{r_{k'}})}e^{-\frac{1}{2}\vec{q^T}V_{kk'}\vec{q}}
+\begin{aligned}
+I(\vec{q})_{Bragg} & = \sum\limits_{c,c'} e^{-i \vec{q} \cdot (\vec{u_c} - \vec{u_c'})} \sum\limits_{i,j} f_i f_j e^{-i \vec{q} (\vec{r_i} - \vec{r_j})} e^{-\frac{1}{2} \vec{q}^\intercal V_{ci,ci} \vec{q}} e^{-\frac{1}{2} \vec{q}^\intercal V_{c'j,c'j} \vec{q}} \\
+& = \sum\limits_{c,c'} e^{-i \vec{q} \cdot (\vec{u_c} - \vec{u_c'})} \sum\limits_{i,j} f_i f_j e^{-i \vec{q} (\vec{r_i} - \vec{r_j})} e^{-\frac{1}{2} (\langle (\vec{\delta_i} \cdot \vec{q})^2 \rangle + \langle (\vec{\delta_j} \cdot \vec{q})^2 \rangle) } \\
+\end{aligned}
 \end{equation}
-$V_{kk'}$ is the interatomic displacement covariance matrix between atoms k and k':
-\begin{equation}
-V_{kk'} = \langle (\delta_k - \delta_k'^T)(\delta_k - \delta_k'^T) \rangle = \langle \delta_k \delta_k^T \rangle + \langle \delta_k' \delta_k'^T \rangle - 2 \langle \delta_k \delta_k'^T \rangle
-\end{equation}
-where each term in the expansion is a 3 x 3 symmetric covariance matrix of interatomic displacements. Thus, $I(q)$ can be rewritten as follows:
-\begin{equation}
-I_{ensemble} (\vec{q}) = \sum\limits_{k}\sum\limits_{k'}f_{k}e^{-W_k}f_{k'}e^{-W_k'}e^{i\vec{q}(\vec{r_{k}} - \vec{r_{k'}})}e^{\vec{q^T} \langle \delta_k \delta_k'^T \rangle \vec{q}}
-\end{equation}
-where $W_k = \frac{1}{2}\vec{q^T} \langle \delta_k \delta_k^T \rangle \vec{q}$ is the Debye-Waller factor.
+where the final exponential term corresponds to the Debye-Waller or conventional B factors. The first sum over unit cells takes the form of the Dirac comb in the limit that the number of unit cells, $N$, is large, and is order $N^2$ at reciprocal lattice points. 
 \newline
-\newline In the case of a model that only has sufficient resolution to account for isotropic disorder, eq. 7 can be rewritten by relating $C_{kk'}$, the N x N correlation matrix (where N is the number of atoms) to anisotropic displacement covariance matrix, $V$ as follows:
+\footnotetext{The term $\langle e^{-i \vec{\delta_{i}} \cdot {\vec{q}}} \rangle$ can alternatively be evaluated by expansion through a power series followed by averaging each term over the atomic displacement distribution function: $\langle e^{-i \vec{\delta_{i}} \cdot {\vec{q}}} \rangle = 1 + (-i \vec{\delta_{i}} \cdot {\vec{q}}) + \frac{(-i \vec{\delta_{i}} \cdot {\vec{q}})^2}{2!} + ... = 1 - \frac{1}{2}(\vec{\delta_i} \cdot \vec{q})^2 + ... $ . (The average over the first order term is 0.) If the displacement distribution function is Gaussian, $\langle e^{-i \vec{\delta_{i}} \cdot {\vec{q}}} \rangle = e^{-\frac{1}{2} \langle ( \vec{\delta_i} \cdot \vec{q} )^2 \rangle }$. }
+\\
+The `diffuse scattering' is the residual scattering described by equation 1 that cannot be accounted for by $I(\vec{q})_{Bragg}$:
 \begin{equation}
-C_{kk'} = \frac{Tr(\langle \delta_k \delta_k'^T \rangle)}{(Tr(\langle \delta_k \delta_k^T \rangle)Tr(\langle \delta_k' \delta_k'^T \rangle))^{\frac{1}{2}}} = \frac{ \langle \delta_k \delta_{k'}^T \rangle}{B_k^{\frac{1}{2}}B_{k'}^{\frac{1}{2}}}
+\begin{aligned}
+I(\vec{q})_{diffuse} & = \langle I(\vec{q})_{total} - I(\vec{q})_{Bragg} \rangle \\
+& = \sum\limits_{c,c'} e^{-i \vec{q} \cdot (\vec{u_c} - \vec{u_c'})} \sum\limits_{i,j} f_i f_j e^{-i \vec{q} (\vec{r_i} - \vec{r_j})} \lbrack \langle e^{ -i \vec{q} \cdot (\vec{\delta}_{ci} - \vec{\delta}_{c'j} )} \rangle -  e^{-\frac{1}{2} (\langle (\vec{\delta}_i \cdot \vec{q})^2 \rangle + \langle (\vec{\delta}_j \cdot \vec{q})^2 \rangle) } \rbrack \\
+\end{aligned}
 \end{equation}
-where $B_k = \langle \delta_k \delta_k^T \rangle$, and thus related to the B-factor. Then,
+Note that:
 \begin{equation}
-I_{ensemble} (\vec{q}) = \sum\limits_{k}\sum\limits_{k'} f_{k}f_{k'}e^{i\vec{q}(\vec{r_{k}} - \vec{r_{k'}})}e^{-\frac{1}{2}\vec{q}^2(B_k + B_{k'} - 2 C_{kk'}(B_k B_{k'})^\frac{1}{2})}
+\langle e^{-i {\vec{q}} \cdot (\vec{\delta}_{ci} - \vec{\delta}_{c'j}) } \rangle = \int e^{-\frac{1}{2} \vec{q}^\intercal V_{ci,c'j} \vec{q} - i \vec{q}^\intercal (\vec{\delta}_{ci} - \vec{\delta}_{c'j}) } d \vec{\delta} = e^{ -\frac{1}{2} \vec{q}^\intercal \lbrack V_{ci,c'i} + V_{cj,c'j} - 2V_{ci,c'j} \rbrack \vec{q} }
 \end{equation}
+Thus,
+\begin{equation}
+\begin{aligned}
+I(\vec{q})_{diffuse} & = \sum\limits_{c,c'} e^{-i \vec{q} \cdot (\vec{u_c} - \vec{u_c'})} \sum\limits_{i,j} \tilde{f_i} \tilde{f_j} e^{-i \vec{q} (\vec{r_i} - \vec{r_j})} \lbrack e^{ \vec{q}^\intercal V_{ci,c'j} \vec{q} } - 1 \rbrack \\
+& = \sum\limits_{c,c'} e^{-i \vec{q} \cdot (\vec{u_c} - \vec{u_c'})} \sum\limits_{i,j} f_i f_j e^{-i \vec{q} (\vec{r_i} - \vec{r_j})} e^{-\frac{1}{2} (\langle (\vec{\delta}_i \cdot \vec{q})^2 \rangle + \langle (\vec{\delta}_j \cdot \vec{q})^2 \rangle) } \lbrack e^{\langle ( \vec{\delta}_{ci} \cdot \vec{q} ) ( \vec{\delta}_{c'j} \cdot \vec{q} ) \rangle} - 1 \rbrack \\
+\end{aligned}
+\end{equation}
+where $\tilde{f_i}$ is the atomic form factor decayed by its Debye-Waller factor, $e^{ -\frac{1}{2} \vec{q}^\intercal V_{ci,c'i} \vec{q} }$. The first version of equation 8 uses the interatomic covariance matrix, $V$, but could be equivalently written using the interatomic displacement covariance matrix, $U$, noting that $U = V_{ci,c'i} + V_{cj,c'j} - 2V_{ci,c'j} = \langle (\vec{\delta}_i - \vec{\delta}_j ^\intercal)^2 \rangle $. We can then compute $I(\vec{q})_{diffuse}$ as the total intensity modulated by this single matrix:
+\begin{equation}
+I(\vec{q})_{diffuse} = \sum\limits_{c,c'} e^{-i \vec{q} \cdot (\vec{u_c} - \vec{u_c'})} \sum\limits_{i,j} f_i f_j e^{-i \vec{q} (\vec{r_i} - \vec{r_j})} \lbrack e^{-\frac{1}{2}\vec{q^T}U_{ij}\vec{q}} - 1 \rbrack
+\end{equation}
+Assuming there is no coupling between unit cells c and c', then the covariance matrix $V$ (or displacement covariance matrix $U$) is nonzero only for $c=c'$, in which case the sum over unit cells evaluates to $N$, the number of unit cells.
 
+\subsection{The form of diffuse scattering in specific disordered regimes}
+
+\subsubsection{Translational disorder of the asymmetric unit} Suppose that individual protein molecules are displaced from their mean lattice positions, and that these displacement sample a Gaussian distribution. Also initially assume that the cell is P1, i.e. that there is one copy of the protein per unit cell. Then the expression for the diffuse intensity in equation 8 can be simplified by recognizing that $\forall(i,j) \, \vec{\delta}_i = \vec{\delta}_j$:
+\begin{equation}
+\begin{aligned}
+I(\vec{q})_{diffuse} & = \sum\limits_{c,c'} e^{-i \vec{q} \cdot (\vec{u_c} - \vec{u_c'})} \sum\limits_{i,j} f_i f_j e^{-i \vec{q} (\vec{r_i} - \vec{r_j})} e^{-(\vec{\delta} \cdot \vec{q})^2} \lbrack e^{\langle ( \vec{\delta} \cdot \vec{q} )^2 } - 1 \rbrack \\
+& = \sum\limits_{c,c'} e^{-i \vec{q} \cdot (\vec{u_c} - \vec{u_c'})} \sum\limits_{i,j} f_i f_j e^{-i \vec{q} (\vec{r_i} - \vec{r_j})} \lbrack 1 - e^{ - ( \vec{\delta} \cdot \vec{q} )^2 } \rbrack \\
+& = N \vert F_{P1}(\vec{q}) \vert ^2 \lbrack 1 - e^{ - ( \vec{\delta} \cdot \vec{q} )^2 } \rbrack \\
+\end{aligned}
+\end{equation}
+where $\vert F_{P1}(\vec{q}) \vert ^2$ is the unit cell structure factor and $N$ is the number of unit cells, respectively. For non-P1 cells, where individual protein molecules coincide with the asymmetric unit, equation 11 can be expressed as:
+\begin{equation}
+I(\vec{q})_{diffuse} = N \sum\limits_{m=1}^M \vert F_{asu}(R_m\vec{q}) \vert ^2 \lbrack 1 - e^{ - ( \vec{\delta} \cdot \vec{q} )^2 } \rbrack
+\end{equation}
+where $R_m$ is the m'th symmetry operator for the space group under consideration. This equation agrees with the derivation of Ayyer \textit{et. al.} \cite{pmid26863980}
+
+\subsubsection{Unstrained conformational disorder} Suppose that displacements occur at the atomic rather than individual protein level, and that these displacements are uncorrelated between atoms. Here we refer to this type of disorder as `strained.' Then, the sum over atom pairs in equation 8 will only be nonzero when $i = j$:
+\begin{equation}
+\begin{aligned}
+I(\vec{q})_{diffuse} & = \sum\limits_{c,c'} e^{-i \vec{q} \cdot (\vec{u_c} - \vec{u_c'})} \sum\limits_{i,i} f_i f_i e^{-i \vec{q} (\vec{r_i} - \vec{r_i})} e^{-\frac{1}{2} (\langle (\vec{\delta}_i \cdot \vec{q})^2 \rangle + \langle (\vec{\delta}_i \cdot \vec{q})^2 \rangle) } \lbrack e^{\langle ( \vec{\delta}_{ci} \cdot \vec{q} ) ( \vec{\delta}_{c'i} \cdot \vec{q} ) \rangle} - 1 \rbrack \\
+& = N \sum f_i^2 e^{-\langle (\vec{\delta}_i \cdot \vec{q})^2 \rangle } \lbrack e^{ ( \vec{\delta}_{i} \cdot \vec{q} )^2 } - 1 \rbrack = N \sum f_i^2 \lbrack 1 - e^{- (\vec{\delta}_i \cdot \vec{q})^2 } \rbrack \\
+\end{aligned}
+\end{equation}
+In the above equation, $\vec{\delta}_i$ is related to the anisotropic displacement parameters (ADPs). Specifically, $ \langle \vec{\delta}_i \vec{\delta}_i^\intercal \rangle $ forms the 3 x 3 symmetric tensor conventionally termed $U$, whose eigenvectors and eigenvalues correspond to the atomic displacement axes and the mean square displacements, respectively\footnotemark. The isotropic B factor equivalent can be estimated from the trace of $U$: $B_{iso} = 8\pi^2 \langle \vec{\delta}^2 \rangle = \frac{8}{3} \pi^2 tr(W) $, where $W$ is the diagonalized $U$.
+
+\footnotetext{The six unique values of $U$ are listed in the ANISOU records of PDB files in the order $U_{11}$, $U_{22}$, $U_{33}$, $U_{12}$, $U_{13}$ , $U_{23}$. The listed values are scaled by a factor of $10^4$\cite{pmid24673391}. }
+
+\subsubsection{Strained conformational disorder} Suppose that the displacements between different atoms are correlated. Here we will refer to such models of disorder as `strained.' In the anisotropic case, $I(\vec{q})_{diffuse}$ can be evaluated from equations 8 or 9. In the case that disorder is assumed to be isotropic (or the model only has sufficient resolution to describe isotropic disorder), the ($n$ x $n$ x $3$ x $3$) anisotropic displacement covariance matrix can be reduced to the ($n$ x $n$) correlation matrix, $C$, by the following relationship for the atom pair $(i, j)$:
+\begin{equation}
+C_{ij} = \frac{ \langle \vec{\delta}_i^\intercal \cdot \vec{\delta}_j \rangle }{\sqrt{\langle \vec{\delta}_i^\intercal \cdot \vec{\delta}_i \rangle \langle \vec{\delta}_j^\intercal \cdot \vec{\delta}_j \rangle }} =\frac{Tr(\langle \vec{\delta}_i \vec{\delta}_j^\intercal \rangle}{\sqrt{Tr(\langle \vec{\delta}_i \vec{\delta}_i^\intercal \rangle)Tr(\langle \vec{\delta}_j \vec{\delta}_j^\intercal \rangle)}} = \frac{ Tr(\langle \vec{\delta}_i \vec{\delta}_j^\intercal \rangle}{b_i^{\frac{1}{2}}b_{j}^{\frac{1}{2}}}
+\end{equation}
+where $b_i = \langle \vec{\delta}_i \vec{\delta}_i^\intercal \rangle$, and thus related to the Debye Waller factor: specifically, $b = \frac{B_{iso}}{8\pi^2}$, where $B_{iso}$ is the values of the conventional B factor computed during crystallographic refinement. Then, the expression for $I(\vec{q})_{diffuse}$ in equation 8 simplifies to:
+\begin{equation}
+I(\vec{q})_{diffuse} = \sum\limits_{i}\sum\limits_{j}f_{i}f_{j}e^{i\vec{q}(\vec{r_{i}} - \vec{r_{j}})} \lbrack e^{-\frac{1}{2}\vec{q}\,^2(b_i + b_j - 2 C_{ij}\sqrt{b_i b_{j}})} - 1 \rbrack
+\end{equation}
 
 \subsection{Inference of the Correlation Matrix}
 
@@ -136,6 +154,8 @@ and substituting $C = \hat{C}_{kk'}$
 {\sum_{\{\mathbf{q}\}} A_{kk'}^2 (\mathbf{q})}
 \]
 proves that this extremum is indeed the minimum and $\mathcal{O}$ is convex.
+
+\bibliography{diffuse_scatter}
 
 \end{document}
 
