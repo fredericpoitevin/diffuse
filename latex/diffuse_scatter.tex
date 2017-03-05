@@ -194,8 +194,60 @@ just a relatively unstructured background remains, proportional to the anisotrop
 
 %%%
 \subsection{Isotropic Real Space Correlation Length}
+Here, we reproduce the isotropic correlation model of Clarage. Our approach is equivalent but more direct, employing the expression for the scattered intensity rather than reasoning about the Patterson. Clarage makes the following assumptions about the atomic correlations:
+%
+\begin{enumerate}
 
+\item Isotropic, distance dependent interatomic correlation: 
+$V_{ij} = \sigma^2 \Gamma(\mathbf{r}_{ij}) $ with $\Gamma$ a kernel describing the correlation length.
 
+\item Isotropic B-factors: $V_{ii} = \sigma^2$ for all $i$.
+
+\end{enumerate}
+
+Using these simplifying approximations, we may write the diffuse scatter
+\[
+I_\mathrm{diffuse} (\mathbf{q}) = N \sum\limits_{i,j} f_i f_j e^{-i \mathbf{q} \cdot \mathbf{r}_{ij}} 
+%
+e^{- q^2 \sigma^2}
+%
+\left[ 
+e^{q^2 \sigma^2 \Gamma(\mathbf{r}_{ij})} - 1
+\right]
+\]
+Clarage suggests that so long as $q^2 \sigma^2 \Gamma(\mathbf{r}_{ij})$ is small, we may Taylor expand the exponential $\exp \{ q^2 \sigma^2 \Gamma(\mathbf{r}_{ij}) \} \approx 1 - q^2 \sigma^2 \Gamma(\mathbf{r}_{ij})$ and further simplify
+\[
+I_\mathrm{diffuse} (\mathbf{q}) = q^2 \sigma^2 \, e^{- q^2 \sigma^2} N 
+\sum\limits_{i,j} f_i f_j e^{-i \mathbf{q} \cdot \mathbf{r}_{ij}} \Gamma(\mathbf{r}_{ij})
+\]
+For this approximation to hold, $q^2 \sigma^2 \Gamma(\mathbf{r}_{ij}) \ll 1$. Since $q \sim 1 \AA^{-1}$, $\sigma \ll 1 \AA$, and $\Gamma(\mathbf{r}_{ij}) \leq 1$ this is not a bad approximation. To assist in the analysis of this function, define a new kernel function
+\[
+s( \mathbf{q}, \mathbf{r}) = \sum_{i,j} f_i f_j \delta( \mathbf{r} - \mathbf{r}_{ij})
+\]
+with $\delta(\cdot)$ the Dirac delta (not a displacement). Using this kernel, we may re-write the diffuse scattering as a Fourier transform, rather than a discrete sum
+\[
+I_\mathrm{diffuse} (\mathbf{q}) = q^2 \sigma^2 \, e^{- q^2 \sigma^2} N 
+\int s( \mathbf{q}, \mathbf{r})  \Gamma(\mathbf{r}) e^{-i \mathbf{q} \cdot \mathbf{r}} \, d \mathbf{r}
+\]
+using the Fourier convolution theorem (specifically, here that $ \mathcal{F}[ f \cdot g ] = \mathcal{F}^{-1}[f] \ast \mathcal{F}^{-1}[g]$, with $\ast$ denoting convolution), we can split the Fourier integral
+\[
+I_\mathrm{diffuse} (\mathbf{q}) = q^2 \sigma^2 \, e^{- q^2 \sigma^2} \frac{N}{8 \pi^3} 
+\left[ \left( \int s( \mathbf{q}, \mathbf{r})  e^{i \mathbf{q} \cdot \mathbf{r}} \, d \mathbf{r} \right) \ast
+\left( \int \Gamma(\mathbf{r})   e^{i \mathbf{q} \cdot \mathbf{r}} \, d \mathbf{r} \right) \right]
+\]
+let $\tilde{\Gamma} (\mathbf{q}) = \int \Gamma(\mathbf{r}_{ij})   e^{i \mathbf{q} \cdot \mathbf{r}_{ij}} \, d \mathbf{r}$ and notice 
+\[
+\int s( \mathbf{q}, \mathbf{r})  e^{i \mathbf{q} \cdot \mathbf{r}} \, d \mathbf{r} =
+%
+\int \sum_{i,j} f_i f_j \delta( \mathbf{r} - \mathbf{r}_{ij}) e^{i \mathbf{q} \cdot \mathbf{r}}  \, d \mathbf{r} =
+%
+\sum_{i,j} f_i f_j e^{i \mathbf{q} \cdot \mathbf{r_{ij}}}
+\]
+is the scattered intensity of a (fully ordered) single unit cell. We will call this $I_0(\mathbf{q})$. In summary, we may write the diffuse scatter as a convolution between this intensity function and the Fourier transform of the correlation kernel $\Gamma$,
+\[
+I_\mathrm{diffuse} (\mathbf{q}) = q^2 \sigma^2 \, e^{- q^2 \sigma^2} \frac{N}{8 \pi^3} 
+\left[ I_0(\mathbf{q}) \ast \tilde{\Gamma}(\mathbf{q}) \right]
+\]
 
 
 \section{Appendix A1}
