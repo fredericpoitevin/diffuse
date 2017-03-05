@@ -251,12 +251,12 @@ let $\tilde{\Gamma} (\mathbf{q}) = \int \Gamma(\mathbf{r}_{ij})   e^{i \mathbf{q
 %
 \int \sum_{i,j} f_i f_j \delta( \mathbf{r} - \mathbf{r}_{ij}) e^{i \mathbf{q} \cdot \mathbf{r}}  \, d \mathbf{r} =
 %
-\sum_{i,j} f_i f_j e^{i \mathbf{q} \cdot \mathbf{r_{ij}}}
+\sum_{i,j} f_i f_j e^{i \mathbf{q} \cdot \mathbf{r_{ij}}} = | F(\mathbf{q}) |^2
 \]
-is the scattered intensity of a (fully ordered) single unit cell. We will call this $I_0(\mathbf{q})$. In summary, we may write the diffuse scatter as a convolution between this intensity function and the Fourier transform of the correlation kernel $\Gamma$,
+is the scattered intensity of a (fully ordered) single unit cell (Clarage calls this $I_0$). In summary, we may write the diffuse scatter as a convolution between this intensity function and the Fourier transform of the correlation kernel $\Gamma$,
 \begin{equation}
 I_\mathrm{diffuse} (\mathbf{q}) = q^2 \sigma^2 \, e^{- q^2 \sigma^2} \frac{N}{16 \pi^6} 
-\left[ I_0(\mathbf{q}) \ast \tilde{\Gamma}(\mathbf{q}) \right]
+\left[ | F(\mathbf{q}) |^2 \ast \tilde{\Gamma}(\mathbf{q}) \right]
 \end{equation}
 
 
