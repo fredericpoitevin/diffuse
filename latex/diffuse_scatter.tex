@@ -62,7 +62,7 @@ this is the simplest model that takes into account anisotropic correlations betw
 \end{enumerate}
 %
 %
-We may re-write eq.~\ref{eq:avgscatter} as
+Since the average is over pairwise probability distrubtions, we may re-write eq.~\ref{eq:avgscatter} as
 \begin{align}
 \langle I (\mathbf{q}) \rangle =
 \sum\limits_{c,d} e^{-i \mathbf{q} \cdot \mathbf{u}_{c d}} 
@@ -134,7 +134,7 @@ e^{\mathbf{q}^T V_{ij} \mathbf{q}} - 1
 \right]
 %
 \end{align}
-with $N$ being the number of unit cells. [Note: I may be missing a normalizing factor].
+with $N$ being the number of unit cells.
 
 The astute reader will notice the first term as the traditional crystallographic scattering
 \begin{align}
@@ -189,7 +189,17 @@ I_\mathrm{diffuse} (\mathbf{q}) = N \sum_{i} f_i^2
 just a relatively unstructured background remains, proportional to the anisotropic B-factors. Note anisotropy is still possible if the individual atomic displacements are highly anisotropic. The diffuse scatter will, however, lack the ``speckle'' features that normally distinguish it from background scattering.
 
 %%%
-\subsection{Rigid Bodies}
+\subsection{Correlated Bodies}
+In the case that an entire set of atoms moves as a unit, the covariance between all pairs of atoms $V_{ij}$ can be written as a scalar $\sigma^2$, and the diffuse scatter becomes
+\begin{align}
+I_\mathrm{diffuse} (\mathbf{q}) =&
+N \sum\limits_{i,j} f_i f_j e^{-i \mathbf{q} \cdot \mathbf{r}_{ij}} 
+\left[ 1 - e^{- q^2 \sigma^2} \right] 
+\nonumber \\ 
+%
+=& N \left[ 1 - e^{- q^2 \sigma^2} \right] |F(q)|^2
+\end{align}
+The diffuse scatter in this case is a scaled version of the molecular transform intensity. This expression was derived by Moore and later Chapman.
 
 
 %%%
@@ -231,7 +241,7 @@ I_\mathrm{diffuse} (\mathbf{q}) = q^2 \sigma^2 \, e^{- q^2 \sigma^2} N
 \]
 using the Fourier convolution theorem (specifically, here that $ \mathcal{F}[ f \cdot g ] = \mathcal{F}^{-1}[f] \ast \mathcal{F}^{-1}[g]$, with $\ast$ denoting convolution), we can split the Fourier integral
 \[
-I_\mathrm{diffuse} (\mathbf{q}) = q^2 \sigma^2 \, e^{- q^2 \sigma^2} \frac{N}{8 \pi^3} 
+I_\mathrm{diffuse} (\mathbf{q}) = q^2 \sigma^2 \, e^{- q^2 \sigma^2} \frac{N}{16 \pi^6} 
 \left[ \left( \int s( \mathbf{q}, \mathbf{r})  e^{i \mathbf{q} \cdot \mathbf{r}} \, d \mathbf{r} \right) \ast
 \left( \int \Gamma(\mathbf{r})   e^{i \mathbf{q} \cdot \mathbf{r}} \, d \mathbf{r} \right) \right]
 \]
@@ -244,10 +254,10 @@ let $\tilde{\Gamma} (\mathbf{q}) = \int \Gamma(\mathbf{r}_{ij})   e^{i \mathbf{q
 \sum_{i,j} f_i f_j e^{i \mathbf{q} \cdot \mathbf{r_{ij}}}
 \]
 is the scattered intensity of a (fully ordered) single unit cell. We will call this $I_0(\mathbf{q})$. In summary, we may write the diffuse scatter as a convolution between this intensity function and the Fourier transform of the correlation kernel $\Gamma$,
-\[
-I_\mathrm{diffuse} (\mathbf{q}) = q^2 \sigma^2 \, e^{- q^2 \sigma^2} \frac{N}{8 \pi^3} 
+\begin{equation}
+I_\mathrm{diffuse} (\mathbf{q}) = q^2 \sigma^2 \, e^{- q^2 \sigma^2} \frac{N}{16 \pi^6} 
 \left[ I_0(\mathbf{q}) \ast \tilde{\Gamma}(\mathbf{q}) \right]
-\]
+\end{equation}
 
 
 \section{Appendix A1}
@@ -262,12 +272,46 @@ d \boldsymbol{\delta}_{c_i}  \, d \boldsymbol{\delta}_{d_j}
 - \frac{1}{2} \mathbf{q}^T V_{d_j d_j} \mathbf{q}
 + \mathbf{q}^T V_{c_i d_j} \mathbf{q}
 \right\}
-\label{eq:disorder_term}
+\label{eq:disorder_term2}
 \end{equation}
+First, recall the characteristic function of a multivariate normal distribution is
+\begin{equation}
+\int \cdots \int f_{\boldsymbol{\mu}, \Sigma}(\mathbf{x}) e^{-i \mathbf{u} \cdot \mathbf{x}} \, d \mathbf{x}
+= \exp \left\{ i \mathbf{u} \cdot \boldsymbol{\mu} - \frac{1}{2} \mathbf{u}^T \Sigma \mathbf{u} \right\}
+\label{eq:mvnlemma}
+\end{equation}
+this can be shown by performing the Gaussian integral on the lhs directly.
 
-
-
-
+We will write (\ref{eq:disorder_term2}) in canonical MVN form and then employ (\ref{eq:mvnlemma}). To do this, introduce the augmented variables
+\[
+\mathbf{x} = 
+\begin{bmatrix}
+\boldsymbol{\delta}_{c_i} \\
+- \boldsymbol{\delta}_{d_j}
+\end{bmatrix}
+%
+\ \ \mathrm{and} \ \
+%
+\mathbf{q}_2 = 
+\begin{bmatrix}
+\mathbf{q} \\
+\mathbf{q}
+\end{bmatrix}
+\]
+which are vectors in $\mathcal{R}^6$. The covariance matrix of $\mathbf{x}$ may be written in block form
+\[
+\Sigma = 
+\langle \mathbf{x}^T  \mathbf{x} \rangle = 
+\begin{bmatrix}
+V_{{c_i}{c_i}} & -V_{{c_i}{d_j}} \\
+-V_{{d_j}{c_i}} & V_{{d_j}{d_j}} \\
+\end{bmatrix}
+\]
+simply using the definition $V_{ab} = \langle \boldsymbol{\delta}_{a}^T\boldsymbol{\delta}_{b} \rangle$. Recall also that $\langle \mathbf{x} \rangle = \mathbf{0}$. Now, we may write (\ref{eq:disorder_term2}) in terms of $\mathbf{x}$ and $\mathbf{q}_2$,
+\[
+= \int p(\mathbf{x} ) e^{- i \mathbf{q}_2 \cdot \mathbf{x} } \, d \mathbf{x}
+\]
+employing (\ref{eq:mvnlemma}) and simplifying completes the proof.
 
 \bibliography{diffuse_scatter}
 
