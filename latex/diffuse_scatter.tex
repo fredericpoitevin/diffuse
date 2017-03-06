@@ -11,26 +11,33 @@
 \usepackage{fancyhdr}
 \usepackage{tipa}
 \usepackage{setspace}
+\usepackage{ulem}
 \newcommand{\lambdabar}{\mbox{\textipa{\textcrlambda}}}
 
 %\usepackage[numbers,sort&compress]{natbib}
 
 \sectionfont{\fontsize{10}{10}\selectfont}
-\subsectionfont{\fontsize{10}{10}\selectfont}
+\sectionfont{\fontsize{10}{10}\selectfont}
  
 \pagestyle{plain}
+
+\title{Derivation of scattering intensities for macromolecular crystals}
+
 \begin{document}
 
-\section{Derivation of scattering intensities for different types of disorder}
+\maketitle
 
-\subsection{General expressions for Bragg and diffuse intensities}
-The most general form of the scattered intensity, $I$, at some wavevector $\vec{q}$ in reciprocal space is:
+\tableofcontents
+
+\newpage
+\section{General expressions for Bragg and diffuse intensities}
+The most general form of the scattered intensity, $I$, at some wavevector $\vec{q}$ in reciprocal space is \textcolor{red}{\cite{pmid19836331}}:
 \begin{equation}
 I(\vec{q}) = \vert \sum\limits_{c} e^{-i \vec{q} \cdot \vec{u_c} } \sum\limits_{i} f_i e^{-i \vec{q} \cdot \vec{r_i}} e^{-i \vec{q} \cdot \vec{\delta_{ci}}(t)} \vert ^2
 \end{equation}
-where $\vec{u_c}$ is the vector from the origin of the coordinate system to the origin of unit cell c, $f_i$ is the atomic form factor of atom i, $r_i$ is the vector that describes the mean position of atom i relative to origin of the unit cell, and $\vec{\delta_{ci}}(t)$ is the instantaneous displacement vector of atom i in unit cell c. The Bragg component of $I(\vec{q})$ is determined by the average atomic positions and can be written as follows:
+where $\vec{u_c}$ is the vector from the origin of the coordinate system to the origin of unit cell c, $f_i$ is the atomic form factor of atom i, $r_i$ is the vector that describes the mean position of atom i relative to origin of the unit cell, and $\vec{\delta_{ci}}(t)$ is the instantaneous displacement vector of atom i in unit cell c. The \sout{Bragg component of} \textcolor{red}{total intensity scattered} $I_{total}(\vec{q})$ is the average of the former over time \sout{determined by the average atomic positions} and can be written as follows:
 \begin{equation}
-I(\vec{q})_{Bragg} = \sum\limits_{c,c'} e^{-i \vec{q} \cdot (\vec{u_c} - \vec{u_c'})} \sum\limits_{i,j} f_i f_j e^{-i \vec{q} (\vec{r_i} - \vec{r_j})} \langle e^{-i \vec{q} \cdot (\vec{\delta_{ci}}(t) - \vec{\delta_{c'j}}(t))} \rangle
+I(\vec{q})_{total} = \sum\limits_{c,c'} e^{-i \vec{q} \cdot (\vec{u_c} - \vec{u_c'})} \sum\limits_{i,j} f_i f_j e^{-i \vec{q} (\vec{r_i} - \vec{r_j})} \langle e^{-i \vec{q} \cdot (\vec{\delta_{ci}}(t) - \vec{\delta_{c'j}}(t))} \rangle
 \end{equation}
 A probability model, $P$, for the displacement distribution of atom i must satisfy the following constraint:
 \begin{equation}
@@ -76,9 +83,9 @@ I(\vec{q})_{diffuse} = \sum\limits_{c,c'} e^{-i \vec{q} \cdot (\vec{u_c} - \vec{
 \end{equation}
 Assuming there is no coupling between unit cells c and c', then the covariance matrix $V$ (or displacement covariance matrix $U$) is nonzero only for $c=c'$, in which case the sum over unit cells evaluates to $N$, the number of unit cells.
 
-\subsection{The form of diffuse scattering in specific disordered regimes}
+\section{The form of diffuse scattering in specific disordered regimes}
 
-\subsubsection{Translational disorder of the asymmetric unit} Suppose that individual protein molecules are displaced from their mean lattice positions, and that these displacement sample a Gaussian distribution. Also initially assume that the cell is P1, i.e. that there is one copy of the protein per unit cell. Then the expression for the diffuse intensity in equation 8 can be simplified by recognizing that $\forall(i,j) \, \vec{\delta}_i = \vec{\delta}_j$:
+\subsection{Translational disorder of the asymmetric unit} Suppose that individual protein molecules are displaced from their mean lattice positions, and that these displacement sample a Gaussian distribution. Also initially assume that the cell is P1, i.e. that there is one copy of the protein per unit cell. Then the expression for the diffuse intensity in equation 8 can be simplified by recognizing that $\forall(i,j) \, \vec{\delta}_i = \vec{\delta}_j$:
 \begin{equation}
 \begin{aligned}
 I(\vec{q})_{diffuse} & = \sum\limits_{c,c'} e^{-i \vec{q} \cdot (\vec{u_c} - \vec{u_c'})} \sum\limits_{i,j} f_i f_j e^{-i \vec{q} (\vec{r_i} - \vec{r_j})} e^{-(\vec{\delta} \cdot \vec{q})^2} \lbrack e^{\langle ( \vec{\delta} \cdot \vec{q} )^2 } - 1 \rbrack \\
@@ -92,7 +99,7 @@ I(\vec{q})_{diffuse} = N \sum\limits_{m=1}^M \vert F_{asu}(R_m\vec{q}) \vert ^2 
 \end{equation}
 where $R_m$ is the m'th symmetry operator for the space group under consideration. This equation agrees with the derivation of Ayyer \textit{et. al.} \cite{pmid26863980}
 
-\subsubsection{Unstrained conformational disorder} Suppose that displacements occur at the atomic rather than individual protein level, and that these displacements are uncorrelated between atoms. Here we refer to this type of disorder as `strained.' Then, the sum over atom pairs in equation 8 will only be nonzero when $i = j$:
+\subsection{Unstrained conformational disorder} Suppose that displacements occur at the atomic rather than individual protein level, and that these displacements are uncorrelated between atoms. Here we refer to this type of disorder as `strained.' Then, the sum over atom pairs in equation 8 will only be nonzero when $i = j$:
 \begin{equation}
 \begin{aligned}
 I(\vec{q})_{diffuse} & = \sum\limits_{c,c'} e^{-i \vec{q} \cdot (\vec{u_c} - \vec{u_c'})} \sum\limits_{i,i} f_i f_i e^{-i \vec{q} (\vec{r_i} - \vec{r_i})} e^{-\frac{1}{2} (\langle (\vec{\delta}_i \cdot \vec{q})^2 \rangle + \langle (\vec{\delta}_i \cdot \vec{q})^2 \rangle) } \lbrack e^{\langle ( \vec{\delta}_{ci} \cdot \vec{q} ) ( \vec{\delta}_{c'i} \cdot \vec{q} ) \rangle} - 1 \rbrack \\
@@ -103,7 +110,7 @@ In the above equation, $\vec{\delta}_i$ is related to the anisotropic displaceme
 
 \footnotetext{The six unique values of $U$ are listed in the ANISOU records of PDB files in the order $U_{11}$, $U_{22}$, $U_{33}$, $U_{12}$, $U_{13}$ , $U_{23}$. The listed values are scaled by a factor of $10^4$\cite{pmid24673391}. }
 
-\subsubsection{Strained conformational disorder} Suppose that the displacements between different atoms are correlated. Here we will refer to such models of disorder as `strained.' In the anisotropic case, $I(\vec{q})_{diffuse}$ can be evaluated from equations 8 or 9. In the case that disorder is assumed to be isotropic (or the model only has sufficient resolution to describe isotropic disorder), the ($n$ x $n$ x $3$ x $3$) anisotropic displacement covariance matrix can be reduced to the ($n$ x $n$) correlation matrix, $C$, by the following relationship for the atom pair $(i, j)$:
+\subsection{Strained conformational disorder} Suppose that the displacements between different atoms are correlated. Here we will refer to such models of disorder as `strained.' In the anisotropic case, $I(\vec{q})_{diffuse}$ can be evaluated from equations 8 or 9. In the case that disorder is assumed to be isotropic (or the model only has sufficient resolution to describe isotropic disorder), the ($n$ x $n$ x $3$ x $3$) anisotropic displacement covariance matrix can be reduced to the ($n$ x $n$) correlation matrix, $C$, by the following relationship for the atom pair $(i, j)$:
 \begin{equation}
 C_{ij} = \frac{ \langle \vec{\delta}_i^\intercal \cdot \vec{\delta}_j \rangle }{\sqrt{\langle \vec{\delta}_i^\intercal \cdot \vec{\delta}_i \rangle \langle \vec{\delta}_j^\intercal \cdot \vec{\delta}_j \rangle }} =\frac{Tr(\langle \vec{\delta}_i \vec{\delta}_j^\intercal \rangle}{\sqrt{Tr(\langle \vec{\delta}_i \vec{\delta}_i^\intercal \rangle)Tr(\langle \vec{\delta}_j \vec{\delta}_j^\intercal \rangle)}} = \frac{ Tr(\langle \vec{\delta}_i \vec{\delta}_j^\intercal \rangle}{b_i^{\frac{1}{2}}b_{j}^{\frac{1}{2}}}
 \end{equation}
@@ -112,7 +119,7 @@ where $b_i = \langle \vec{\delta}_i \vec{\delta}_i^\intercal \rangle$, and thus 
 I(\vec{q})_{diffuse} = \sum\limits_{i}\sum\limits_{j}f_{i}f_{j}e^{i\vec{q}(\vec{r_{i}} - \vec{r_{j}})} \lbrack e^{-\frac{1}{2}\vec{q}\,^2(b_i + b_j - 2 C_{ij}\sqrt{b_i b_{j}})} - 1 \rbrack
 \end{equation}
 
-\subsection{Inference of the Correlation Matrix}
+\section{Inference of the Correlation Matrix}
 
 Let us assume that we have many measurements of $I_\mathrm{ensemble}$ and wish to infer a model of the form just discussed. To do this, we may minimize the least squares loss function
 \[
