@@ -31,19 +31,47 @@
 
 \newpage
 \section{General expressions for Bragg and diffuse intensities}
-The most general form of the scattered intensity, $I$, at some wavevector $\vec{q}$ in reciprocal space is \textcolor{red}{\cite{pmid19836331}}:
+Consider a crystal made of $\mathcal{C}$ unit cells, each containing $N$ atoms (encompassing one or many asymetric units). The total electron density of the crystal can be written as the sum over the electronic density of each atom, defined by the position of their nucleus $R$ and the distribution function of their electrons $g$:
+\begin{eqnarray}
+	&&\rho_{total}(\vec{r}) = \sum_{c}^{\mathcal{C}}\sum_{i}^{N}\rho_{ci}(\vec{r})\\\nonumber
+    &&\text{where }\rho_{ci}(\vec{r})=\int d\vec{r}'\ \delta(\vec{r}'-\vec{R}_{ci})g_{i}(\vec{r}-\vec{r}')
+\end{eqnarray}
+The wave $A(\vec{q})$ elastically scattered by the crystal can now be written. Noting $f$ the Fourier transform of $g$, also known as the atomic form factor: 
 \begin{equation}
-I(\vec{q}) = \vert \sum\limits_{c} e^{-i \vec{q} \cdot \vec{u_c} } \sum\limits_{i} f_i e^{-i \vec{q} \cdot \vec{r_i}} e^{-i \vec{q} \cdot \vec{\delta_{ci}}(t)} \vert ^2
+	A(\vec{q}) = \sum_{c}\sum_{i}f_{i}(q)e^{-i\vec{q}.\vec{R}_{ci}}
 \end{equation}
-where $\vec{u_c}$ is the vector from the origin of the coordinate system to the origin of unit cell c, $f_i$ is the atomic form factor of atom i, $r_i$ is the vector that describes the mean position of atom i relative to origin of the unit cell, and $\vec{\delta_{ci}}(t)$ is the instantaneous displacement vector of atom i in unit cell c. The \sout{Bragg component of} \textcolor{red}{total intensity scattered} $I_{total}(\vec{q})$ is the average of the former over time \sout{determined by the average atomic positions} and can be written as follows:
+The position of each nucleus can be decomposed over the vector from the origin of the coordinate system to the origin of unit cell c $\vec{u_c}$, the vector that describes the average  position of atom i relative to origin of the unit cell $\vec{r}_i$ and $\vec{\delta}_{ci}$ the deviation to it. An argument needs to be made here about the meaning of "instantaneous" deviation in Moore's terminology (see \cite{pmid19836331}). More importantly, in the context of various experimental setups (synchrotron vs XFEL...), what is the average being made ? In the following, we assume that an ensemble needs to be performed, and we might be able to get there by emplying some kind of 'non-distinguishable cells' argument...
+
+\subsection{Statistical model}
+
+The total intensity scattered at $\vec{q}$ in reciprocal space can now be written as  an ensemble average over all possible realizations of the deviations:
+
 \begin{equation}
-I(\vec{q})_{total} = \sum\limits_{c,c'} e^{-i \vec{q} \cdot (\vec{u_c} - \vec{u_c'})} \sum\limits_{i,j} f_i f_j e^{-i \vec{q} (\vec{r_i} - \vec{r_j})} \langle e^{-i \vec{q} \cdot (\vec{\delta_{ci}}(t) - \vec{\delta_{c'j}}(t))} \rangle
+I(\vec{q}) = \langle |A(\vec{q})|^{2} \rangle = \sum\limits_{c,c'} e^{-i \vec{q} \cdot (\vec{u_c} - \vec{u_c'})} \sum\limits_{i,j} f_i f_j e^{-i \vec{q} (\vec{r_i} - \vec{r_j})} \langle e^{-i \vec{q} \cdot (\vec{\delta_{ci}}(t) - \vec{\delta_{c'j}}(t))} \rangle
 \end{equation}
-A probability model, $P$, for the displacement distribution of atom i must satisfy the following constraint:
-\begin{equation}
-\langle \vec{\delta_{i}} \rangle = \int P(\vec{\delta_{i}})\, \vec{\delta_{i}} \, d\vec{\delta_{i}} = 0
-\end{equation}
-where the integration is over all unit cells. Thus, a multivariate Gaussian would suffice: for example, $P(\vec{\delta_{i}}) =e^{-\frac{1}{2} \vec{x}^\intercal V \vec{x}}$, where $V = \langle \vec{\delta_{i}} \, \vec{\delta_{i}}^\intercal \rangle$. Here it is assumed that $V$ is identical when evaluated for equivalent atoms in different unit cells: $V_{ci,ci} = V_{c'i,c'i}$.
+Noting $\mathcal{P}$ the underlying probability distribution, the ensemble average over the $3N\mathcal{C}$-dimensional vector $\delta$, of a function $f$ of $\delta$, is defined by
+
+\begin{eqnarray}
+	&&\langle f(\delta) \rangle = Z^{-1} \int d\delta\ \mathcal{P}(\delta) f(\delta) \\\nonumber
+	&&\text{where } Z=\int d\delta\ \mathcal{P}(\delta)
+\end{eqnarray}
+
+We now make the approximation that $\mathcal{P}$ is a multivariate Gaussian distribution, that is there is a $3N\mathcal{C}^{2}$ symmetric positive-definite matrix $V^{-1}$ such that $\mathcal{P}(\delta)=e^{-\frac{1}{2}\delta^{T}V^{-1}\delta}$. At that stage, we shall recall an important property of Gaussian integrals involving polynomials ($f$ would be a polynomial here)
+\begin{eqnarray}
+\int d\delta\ e^{-\frac{1}{2}\delta^{T}V^{-1}\delta} f(\delta) &=& Z\  e^{\frac{1}{2}\nabla^{T}V\nabla}f(\delta)|_{\delta=0}\\\nonumber
+&\simeq& Z(1+\frac{1}{2}\nabla^{T}V\nabla+...)f(\delta)|_{\delta=0}
+\end{eqnarray}
+
+We now evaluate the first moments of $\delta$ for each of its $3N\mathcal{C}$ components that we index $i$ for clarity
+\begin{eqnarray}
+\langle \delta_{i} \rangle &=& \sum_{k,l}V_{k,l}\partial_{k}\partial_{l}\ \delta_{i} = \sum_{k}V_{k,i}\partial_{k}1 = 0\\\nonumber
+\langle \delta_{i}\delta_{j} \rangle &=& \sum_{k,l}V_{k,l}\partial_{k}\partial_{l}\ \delta_{i}\delta_{j} = \sum_{k}V_{k,i}\partial_{k}\delta_{j} = V_{j,i}
+\end{eqnarray}
+We see that our Gaussian model results in a distribution of $\delta$ where each of its component average to zero, and the average correlation between two components allows to define the inverse of matrix $V^{-1}$ that was not define initially. Re-indexing properly, and writing $\vec{\delta_{ci}}$ the 3D vector that describes the deviation of atom $i$ in unit cell $c$, we completely define our statistical model by considering the matrix $V$ whose $3x3$ $V_{ci,dj}$ encodes for the correlations in the displacement between the displacement vector $\delta_{ci}$ and $\delta_{dj}$: $V_{ci,dj}=\langle \delta_{ci}\delta_{dj}^{T}\rangle$.\\
+
+\textbf{To be continued} ...\\
+
+Here it is assumed that $V$ is identical when evaluated for equivalent atoms in different unit cells: $V_{ci,ci} = V_{c'i,c'i}$.
 Then, the exponential decay term in the equation for $I(\vec{q})_{Bragg}$ can be evaluated as\footnotemark:
 \begin{equation}
 \langle e^{-i {\vec{q}} \cdot \vec{\delta}_{ci} } \rangle = \int P(\vec{\delta}_{ci})\, e^{-i \vec{\delta}_{ci} \cdot {\vec{q}}} \, d\vec{\delta}_{i,c} = e^{-\frac{1}{2} \vec{q}^\intercal V_{ci,ci} \vec{q} }
@@ -165,5 +193,4 @@ proves that this extremum is indeed the minimum and $\mathcal{O}$ is convex.
 \bibliography{diffuse_scatter}
 
 \end{document}
-
 
