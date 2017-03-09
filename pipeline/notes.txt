@@ -1,0 +1,6 @@
+Description of scripts:
+- generate_system.py: generate a dictionary with geometry and detector information from XDS files.
+- Indexer.py: class for indexing diffraction images and processing intensities, as necessary
+- index.py: wrapper for using Indexer class
+
+- reference.py: tests of above scripts
