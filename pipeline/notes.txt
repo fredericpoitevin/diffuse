@@ -5,3 +5,7 @@ Description of scripts (in order of use):
 - amend_system.py: revise system dictionary to include information relevant for map construction
 
 - reference.py: tests of above scripts
+
+TO DOs:
+- check whether XDS 'A' matrix include orthogonalization matrix U -- note that U will be identity matrix 
+for orthorhombic systems, so script should be fine for P212121, etc.
