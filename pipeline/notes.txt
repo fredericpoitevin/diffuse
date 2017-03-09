@@ -1,6 +1,7 @@
-Description of scripts:
+Description of scripts (in order of use):
 - generate_system.py: generate a dictionary with geometry and detector information from XDS files.
 - Indexer.py: class for indexing diffraction images and processing intensities, as necessary
 - index.py: wrapper for using Indexer class
+- amend_system.py: revise system dictionary to include information relevant for map construction
 
 - reference.py: tests of above scripts
