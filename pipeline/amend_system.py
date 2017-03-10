@@ -1,6 +1,7 @@
 import cPickle as pickle
 import numpy as np
 import math, os.path, sys
+import map_utils
 
 """ 
 Amend systems.pickle dictionary with information necessary for map constrution,
@@ -48,56 +49,13 @@ def extract_cell_info(xds_path):
 
     return
 
-def determine_map_bins(cell_constants, space_group, d, subsampling):
-    """
-    Determine the grid for map construction.
-    Inputs: np.array of cell constants in order (a, b, c, alpha, beta, gamma),
-            space group (number), d: maximum resolution, subsampling
-    Output: bins dictionary containing voxel centers along h,k,l
-
-    Note: checked using http://www.ruppweb.org/new_comp/reciprocal_cell.htm.
-
-    """
-    
-    a, b, c, alpha, beta, gamma = cell_constants
-    
-    # valid for orthorhombic, cubic, and tetragonal 
-    if ((space_group >= 16) and (space_group <=142)) or ((space_group >= 195) and (space_group <=230)):
-        mh, mk, ml = math.ceil(a/d), math.ceil(b/d), math.ceil(c/d)
-
-    # valid for hexagonal (and possibly trigonal? if so change loewr bound to 143)
-    elif (space_group >= 168) and (space_group <=194):
-        mh, mk = math.ceil(np.sqrt(3)*a/(2*d)), math.ceil(np.sqrt(3)*a/(2*d))
-        ml = math.ceil(c/d)
-
-    # valid for monoclinic
-    elif (space_group >= 3) and (space_group <=15):
-        mh = math.ceil(a*np.sin(np.deg2rad(beta))/d)
-        mk = math.ceil(b/d)
-        ml = math.ceil(c*np.sin(np.deg2rad(beta))/d)
-
-    else:
-        print "This space group is currently unsupported. Please add 'bins' key manually to systems.pickle."
-
-    # generate bins containing voxel center information
-    bins = dict()
-    try:
-        bins['h'] = np.linspace(-1 * mh, mh, 2 * mh * subsampling + 1)
-        bins['k'] = np.linspace(-1 * mk, mk, 2 * mk * subsampling + 1)
-        bins['l'] = np.linspace(-1 * ml, ml, 2 * ml * subsampling + 1)
-        system['bins'] = bins
-        
-    except NameError:
-        pass
-    
-    return 
 
 if __name__ == '__main__':
 
     system = pickle.load(open(sys.argv[1], "rb"))
     prompt_for_map_info()
     extract_cell_info(system['xds_path'])
-    determine_map_bins(system['cell'], system['space_group'], system['d'], system['subsampling'])
+    system['bins'] = map_utils.determine_map_bins(system['cell'], system['space_group'], system['d'], system['subsampling'])
 
     # save revised systems.pickle file
     with open(sys.argv[1], 'wb') as handle:
