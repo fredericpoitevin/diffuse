@@ -38,12 +38,13 @@ def compute_resolution(space_group, cell_constants, s_grid):
 
     # valid for hexagonal (and possibly trigonal? if so change lower bound to 143)
     elif (space_group >= 168) and (space_group <=194):
-        res = 1.0/np.sqrt(4.0*(np.square(h) + h*k + np.square(l))/(3*np.square(a)) + np.square(l/c))
+        res = 1.0/np.sqrt(4.0*(np.square(h) + h*k + np.square(k))/(3*np.square(a)) + np.square(l/c))
 
-    # valid for monoclinic 
-    elif (space_group >= 3) and (space_group <=15):
-        res = 1.0/np.sqrt( np.square(h/(a*np.sin(np.deg2rad(beta)))) + np.square(k/b) + np.square(l/c) \
-                               + 2*h*l*np.cos(np.deg2rad(beta)) / (a*c*np.square(np.sin(np.deg2rad(beta)))))
+    # valid for monoclinic NOTE: TESTS ARE FAILING -- RUPPWEB INTERPRETS AS P2 RATHER THAN P1211
+    #elif (space_group >= 3) and (space_group <=15):
+    #    res = 1.0/np.sqrt( np.square(h/(a*np.sin(np.deg2rad(beta)))) + np.square(k/b) +\
+    #                           np.square(l/(c*np.sin(np.deg2rad(beta)))) + \
+    #                           2*h*l*np.cos(np.deg2rad(beta)) / (a*c*np.square(np.sin(np.deg2rad(beta)))))
 
     else:
         print "This space group is currently unsupported. Please add 'bins' key manually to systems.pickle."
