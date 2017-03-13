@@ -5,9 +5,13 @@ import map_utils
 
 class PredictBragg:
 
-    """ Class that predicts centers and shapes of Bragg reflections. Generates a mask per batch in shape 
-    of (frames, flattened detector) that indicates pixels predicted to be spanned by Bragg peaks with a 
-    value of 1. """
+    """ 
+    Class that predicts centers and shapes of Bragg reflections. This calculation is performed per batch, 
+    i.e. shapes are predcited for all of the Miller indices whose centers are predicted to fall within 
+    that batch, but the reflections can extend beyond batch bounds, so the final output per batch is an 
+    .h5 file with one key of shape (flattened detector) per image in the oscillation range. Pixels predicted 
+    to be spanned by Bragg reflections are marked with a value of 1; Bragg centers are marked by a value of 10.    
+    """
 
     def __init__(self, system, nbatch, sys_absences = False):
         """
@@ -250,6 +254,6 @@ class PredictBragg:
 
                 print idx, ' '.join(map(str, self.predicted[idx, :4])), len(images), len(xy_obs)
 
-        #self._save_masks(rs_mask)
+        self._save_masks(rs_mask)
                 
         return
