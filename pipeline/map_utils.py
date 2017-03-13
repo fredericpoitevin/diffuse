@@ -22,11 +22,11 @@ def rotation_matrix(axis, omega):
 
 def compute_resolution(space_group, cell_constants, s_grid):
     """
-    Compute d-spacing / resolution for a set of scattering vectors, 
-    where q = 2*pi*s.
+    Compute d-spacing / resolution for a set of scattering vectors, where q = 2*pi*s.
+    Set (0,0,0) to arbitrarily high (but not infinite) resolution.
     Inputs: np.array of cell constants in order (a, b, c, alpha, beta, gamma),
             space group (number), grid of scattering vectors
-    Output: np.array of d-spacings 
+    Output: np.array of d-spacings, which is empty if space group is unsupported. 
     """
 
     a, b, c, alpha, beta, gamma = cell_constants
@@ -34,20 +34,24 @@ def compute_resolution(space_group, cell_constants, s_grid):
 
     # valid for orthorhombic, cubic, and tetragonal
     if ((space_group >= 16) and (space_group <=142)) or ((space_group >= 195) and (space_group <=230)):
-        res = 1.0/np.sqrt(np.square(h/a) + np.square(k/b) + np.square(l/c))
+        inv_d = np.sqrt(np.square(h/a) + np.square(k/b) + np.square(l/c))
 
     # valid for hexagonal (and possibly trigonal? if so change lower bound to 143)
     elif (space_group >= 168) and (space_group <=194):
-        res = 1.0/np.sqrt(4.0*(np.square(h) + h*k + np.square(l))/(3*np.square(a)) + np.square(l/c))
+        inv_d = np.sqrt(4.0*(np.square(h) + h*k + np.square(k))/(3*np.square(a)) + np.square(l/c))
 
     # valid for monoclinic 
     elif (space_group >= 3) and (space_group <=15):
-        res = 1.0/np.sqrt( np.square(h/(a*np.sin(np.deg2rad(beta)))) + np.square(k/b) + np.square(l/c) \
-                               + 2*h*l*np.cos(np.deg2rad(beta)) / (a*c*np.square(np.sin(np.deg2rad(beta)))))
+        beta = np.deg2rad(beta)
+        inv_d = np.sqrt( np.square(h/(a*np.sin(beta))) + np.square(k/b) + np.square(l/(c*np.sin(beta)))\
+                             + 2*h*l*np.cos(beta) / (a*c*np.square(np.sin(beta))))
 
     else:
         print "This space group is currently unsupported. Please add 'bins' key manually to systems.pickle."
-        res = np.empty(0)
+        return np.empty(0)
+
+    inv_d[inv_d==0] = 1e-5
+    res = 1.0 / inv_d
 
     return res
 
