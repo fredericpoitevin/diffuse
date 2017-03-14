@@ -116,16 +116,17 @@ def extract_corrections(xds_path):
                 for i in range(corner[0], corner[1]):
                     mask[:,i] = False
 
-        # mask shadow of beamstop arm
-        vertices = np.asarray([s.strip('\n').split()[-10:-2] for s in content if "UNTRUSTED_QUADRILATERAL" in s][0], dtype=int)
-        bbPath = mplPath.Path(np.array([[vertices[0], vertices[1]],
-                                        [vertices[2], vertices[3]],
-                                        [vertices[4], vertices[5]],
-                                        [vertices[6], vertices[7]],]))
-        for x in range(mask.shape[1]):
-            for y in range(mask.shape[0]):
-                if bbPath.contains_point((x, y)):
-                    mask[y, x] = False
+        # mask shadow of beamstop arm if it's marked as an untrusted region by XDS
+        if any("UNTRUSTED_QUADRILATERAL" in s for s in content):
+            vertices = np.asarray([s.strip('\n').split()[-10:-2] for s in content if "UNTRUSTED_QUADRILATERAL" in s][0], dtype=int)
+            bbPath = mplPath.Path(np.array([[vertices[0], vertices[1]],
+                                            [vertices[2], vertices[3]],
+                                            [vertices[4], vertices[5]],
+                                            [vertices[6], vertices[7]],]))
+            for x in range(mask.shape[1]):
+                for y in range(mask.shape[0]):
+                    if bbPath.contains_point((x, y)):
+                        mask[y, x] = False
         
         system['mask'] = mask
 
