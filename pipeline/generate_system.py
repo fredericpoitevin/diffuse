@@ -58,7 +58,7 @@ def extract_geometry(xds_path):
         # extract orientation (A) matrices and wavelength
         A_matrices = [s.strip('\n').split()[5:] for s in content if "COORDINATES OF UNIT CELL" in s]
         A_matrices = np.asarray(A_matrices, dtype=float)
-        system['A'] = A_matrices.reshape(system['n_batch'], 3, 3)
+        system['A_batch'] = A_matrices.reshape(system['n_batch'], 3, 3)
         system['wavelength'] = float([s.split()[1] for s in content if "X-RAY_WAVELENGTH" in s][0])
 
         # extract p, s, f, and origin vectors, with units in meters

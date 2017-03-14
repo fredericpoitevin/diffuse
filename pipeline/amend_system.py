@@ -32,8 +32,6 @@ def extract_cell_info(xds_path):
     from XDS_ASCII.HKL.
     """
 
-    system['A_batch'] = system['A'] # move per batch A matrices to separate key
-
     filename = xds_path + "XDS_ASCII.HKL"
     with open(filename, "r") as f:
 

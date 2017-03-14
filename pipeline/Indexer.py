@@ -1,5 +1,5 @@
 import numpy as np
-import math
+import math, map_utils
 
 class Indexer:
 
@@ -32,23 +32,6 @@ class Indexer:
             self.ref_hkl = np.loadtxt(system['xds_path'] + 'INTEGRATE.HKL', \
                                           comments = '!', usecols = [0, 1, 2, 5, 6, 7])
         self.hklI = np.zeros((system['shape'][0]*system['shape'][1], 4))
-
-    def _rotation_matrix(self, axis, omega):
-        """ 
-        Return 3x3 rotation matrix for counter-clockwise rotation around specified 
-        axis by omega radians. 
-
-        """
-
-        axis = axis/math.sqrt(np.dot(axis, axis))
-        a = math.cos(omega/2.0)
-        b, c, d = -axis*math.sin(omega/2.0)
-        aa, bb, cc, dd = a*a, b*b, c*c, d*d
-        bc, ad, ac, ab, bd, cd = b*c, a*d, a*c, a*b, b*d, c*d
-        rot_mat = np.array([[aa+bb-cc-dd, 2*(bc+ad), 2*(bd-ac)],
-                            [2*(bc-ad), aa+cc-bb-dd, 2*(cd+ab)],
-                            [2*(bd+ac), 2*(cd-ab), aa+dd-bb-cc]])
-        return rot_mat
 
     def _parallax_correction(self, image_num, s1):
         """ 
@@ -88,7 +71,7 @@ class Indexer:
 
         """
 
-        millers_reshape = hkl.reshape(2527, 2463, 3)
+        millers_reshape = hkl.reshape(self.system['shape'][0], self.system['shape'][1], 3)
         millers_xds, xyzcal = self.ref_hkl.T[:3], self.ref_hkl.T[3:5]
         inds = np.where(self.ref_hkl.T[5] == image_num)[0]
 
@@ -131,9 +114,9 @@ class Indexer:
         S = (1.0/self.system['wavelength'])*(s1 - beam)
 
         # rotate orientation matrix and compute hkl
-        rot_mat = self._rotation_matrix(self.system['rot_axis'], \
-                                            -1*np.deg2rad(self.system['rot_phi']*(image_num-1)+self.system['rot_phi']))
-        rot_cryst = np.dot(self.system['A'][(image_num - 1)/self.system['batch_size']], rot_mat)
+        rot_mat = map_utils.rotation_matrix(self.system['rot_axis'], \
+                                                -1*np.deg2rad(self.system['rot_phi']*(image_num-1)+self.system['rot_phi']))
+        rot_cryst = np.dot(self.system['A_batch'][(image_num - 1)/self.system['batch_size']], rot_mat)
         hkl = np.inner(rot_cryst, S).T
         delta = self._validate(hkl.copy(), image_num)
 

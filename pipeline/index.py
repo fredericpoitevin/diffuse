@@ -1,3 +1,4 @@
+import tables, h5py, bitshuffle.h5
 import matplotlib, sys, time, glob
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -6,10 +7,26 @@ import numpy as np
 import Indexer, os.path
 
 """
-Wrapper for Indexer class. Things to add: 1. ability to parse cbf/h5 files.
+Wrapper for Indexer class, which can accept .npy or .h5 image files. Files in 
+.cbf format must be converted to .npy format first.
+
 Usage: python index.py [map directory] [image directory]
 
 """
+
+def load_h5(file_name):
+    """
+    Load compressed h5 file and convert to np.array format using bitshuffle.
+    """
+    f = tables.File(file_name, filters=32008) # filter number from bitshuffle website
+    data = f.get_node('/entry/data').data.read()
+    
+    mask = np.zeros(data[0].shape)
+    mask[np.where(data[0]==data[0].max())] = 1
+    data_filtered = data[0].copy()
+    data_filtered[mask==1] = 0
+    
+    return data_filtered
 
 def index_data(system, image_dir, output_dir):
     """ 
@@ -19,11 +36,18 @@ def index_data(system, image_dir, output_dir):
 
     """
     
-    num_images = system['n_batch']*system['batch_size']
+    num_images = int(system['n_batch']*system['batch_size'])
     deltas = np.zeros((num_images, 3))
 
     # assume that file numbers are 1-indexed and prefaced by final underscore in file name
     file_glob = glob.glob(image_dir + "*")
+
+    h5 = False # set an h5 flag; if false, assume images are in .npy format already
+    if file_glob[0][-2:] == 'h5':
+        h5 = True
+        idx = [i for i,s in enumerate(file_glob) if 'master' in s][0]
+        file_glob.pop(idx) # eliminate the master.h5 file
+
     filelist = sorted(file_glob, key = lambda name: int(name.split('_')[-1].split('.')[0]))
     assert len(filelist) == num_images
 
@@ -35,7 +59,12 @@ def index_data(system, image_dir, output_dir):
 
         # index image and process intensities; save as hklI
         deltas[img] = indexer_obj.index(img + 1) # image suffixes should be 1-indexed
-        imgI = np.load(filelist[img])
+
+        if h5 is True:
+            imgI = load_h5(filelist[img])
+        else:
+            imgI = np.load(filelist[img])
+
         indexer_obj.process_intensities(imgI, img + 1)
         np.save(output_dir + "hklI_%s.npy" %(file_glob[img].split('_')[-1].split('.')[0]), indexer_obj.hklI)
 
