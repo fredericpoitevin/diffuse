@@ -66,7 +66,7 @@ def index_data(system, image_dir, output_dir):
             imgI = np.load(filelist[img])
 
         indexer_obj.process_intensities(imgI, img + 1)
-        np.save(output_dir + "hklI_%s.npy" %(file_glob[img].split('_')[-1].split('.')[0]), indexer_obj.hklI)
+        np.save(output_dir + "hklI_%s.npy" %(filelist[img].split('_')[-1].split('.')[0]), indexer_obj.hklI)
 
         # reset hklI per image and corrections per batch
         indexer_obj.clear_hklI()
