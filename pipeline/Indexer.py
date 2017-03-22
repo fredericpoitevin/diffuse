@@ -118,20 +118,26 @@ class Indexer:
                                                 -1*np.deg2rad(self.system['rot_phi']*(image_num-1)+self.system['rot_phi']))
         rot_cryst = np.dot(self.system['A_batch'][(image_num - 1)/self.system['batch_size']], rot_mat)
         hkl = np.inner(rot_cryst, S).T
-        delta = self._validate(hkl.copy(), image_num)
+        if 'xds_path' in self.system.keys():
+            delta = self._validate(hkl.copy(), image_num)
 
         # compute polarization and solid angle corrections if specified
         if 'polarization' in self.system['corrections']:
             if "polarization" not in self.system.keys():
                 self.system['polarization'] = self._polarization_correction(s1, S, beam)
-
+                
         if 'solid angle' in self.system['corrections']:
             if "solid_angle" not in self.system.keys():
                 self.system['solid_angle'] = self._solid_angle_correction(S)
-
+                
         self.hklI[:,0:3] = hkl
-        return delta
 
+        try:
+            return delta
+        except:
+            return np.zeros(3) 
+        
+        
     def _polarization_correction(self, s1, S, beam):
         """ 
         Compute array of polarization correction factors with shape (n_pixels). Based on Thor implementation:

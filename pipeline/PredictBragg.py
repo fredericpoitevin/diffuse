@@ -238,7 +238,8 @@ class PredictBragg:
         frames = np.where(np.abs(zeta * dpsi) < delta_m)
 
         # predict detector coordinates that each miller will span
-        for idx in np.unique(frames[0])[:10]:
+        counter = 0
+        for idx in np.unique(frames[0]):
             
             eps1 = 180*np.inner(e1[idx], sdash - s1_batch[idx])/(np.pi*s1_batch_norm[idx]) 
             eps2 = 180*np.inner(e2[idx], sdash - s1_batch[idx])/(np.pi*s1_batch_norm[idx])
@@ -252,7 +253,9 @@ class PredictBragg:
                 flattened = xcen*self.system['shape'][1] + ycen
                 rs_mask[images[0]:images[-1]+1, flattened] = 10 
 
-                print idx, ' '.join(map(str, self.predicted[idx, :4])), len(images), len(xy_obs)
+                if counter < 200:
+                    print idx, ' '.join(map(str, self.predicted[idx, :4])), len(images), len(xy_obs)
+                    counter += 1
 
         self._save_masks(rs_mask)
                 

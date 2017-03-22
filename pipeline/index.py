@@ -49,7 +49,9 @@ def index_data(system, image_dir, output_dir):
         file_glob.pop(idx) # eliminate the master.h5 file
 
     filelist = sorted(file_glob, key = lambda name: int(name.split('_')[-1].split('.')[0]))
-    assert len(filelist) == num_images
+    if len(filelist) != num_images:
+        print "Warning: discrepancy predicted and found number of images"
+        num_images = len(filelist)
 
     # set up instance of Indexer class
     indexer_obj = Indexer.Indexer(system)
@@ -110,6 +112,7 @@ if __name__ == '__main__':
         os.makedirs(output_dir)
 
     deltas = index_data(system, sys.argv[2], output_dir)
-    plot_deltas(deltas, sys.argv[1])
+    if 'xds_path' in system.keys():
+        plot_deltas(deltas, sys.argv[1])
 
     print "elapsed time is %f" %((time.time() - start)/60.0)

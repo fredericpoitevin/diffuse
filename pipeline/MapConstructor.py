@@ -5,14 +5,20 @@ import numpy as np
 
 class GenerateMap:
 
-    def __init__(self, data_path, nshells):
+    """
+    Class that compiles 3d maps from indexed data. The initial step involves binning the intensities
+    of indexed pixels into the appropriate voxel; this can be parallelized across resolution shells.
+    The second step involves averaging over intensity values for each voxel to generate a 3d map in 
+    grid format. Specifications (max. resolution, sampling frequency) are defined in system.pickle.
+    """
+
+    def __init__(self, system, nshells):
         """
-        Initialize class with inputs: data_path, folder in which dictionary containing
-        map specifications lives; nshells, number of resolution shells over which to 
-        parallelize map generation.
+        Initialize class with inputs: system, dictionary containing geometry and map specifications; 
+        nshells, number of resolution shells over which to parallelize map generation.
         """
 
-        self.system = pickle.load(open(data_path + "system.pickle", "rb"))
+        self.system = system
         self.nshells = nshells
         self.set_up()
 
@@ -45,6 +51,7 @@ class GenerateMap:
         nvox_per_shell, shell_bounds = np.histogram(inv_dcubed[voxel_res > self.system['d']], bins = self.nshells)
         shell_bounds = np.concatenate((shell_bounds, [1])) # assuming here we're not working with <1 A data
         self.vx_dig = np.digitize(inv_dcubed, shell_bounds)
+        self.res_bins = (1.0/shell_bounds[:-1])**(1.0/3)
 
         return vx_centers
 
@@ -63,12 +70,18 @@ class GenerateMap:
 
         # eliminate invalid datapoints in the indexed image
         data_res = map_utils.compute_resolution(self.system['space_group'], self.system['cell'], indexed)
-        data_subset = indexed[np.where(data_res > self.system['d'] - 0.1)[0]]
-
+        data_subset = indexed[np.where((data_res > self.system['d'] - 0.1) & (indexed[:,3]>0))[0]]
+        
         # digitize and ravel data such that each datapoint is associated with a 1D identifier
         dig_data = np.array((np.digitize(data_subset[:,0], self.edges['h']), 
                              np.digitize(data_subset[:,1], self.edges['k']), 
                              np.digitize(data_subset[:,2], self.edges['l'])))
+        
+        invalid = np.unique(np.hstack((np.where(dig_data[0]>=self.dmap_shape[0]),
+                                       np.where(dig_data[1]>=self.dmap_shape[1]),
+                                       np.where(dig_data[2]>=self.dmap_shape[2]))))
+
+        dig_data = np.delete(dig_data, invalid, axis=1)
         rav_data = np.ravel_multi_index(dig_data, self.dmap_shape)
 
         # determine the voxels observed in this image and specified shell
@@ -98,3 +111,32 @@ class GenerateMap:
             d_comb[key] = [item for sublist in value for item in sublist]
 
         return d_comb
+
+    def reduce_shell(self, shell_dict):
+        """
+        Compute mean intensities, I/sigma(I), and number of pixels per voxel for the input
+        resolution shell dictionary. Return in both dictionary and grid formats; note that
+        grids have been reshaped to final map shape.
+        """
+
+        # set up dictionaries and grids, latter initially in 1d
+        maps, grids = dict(), dict()
+        map_keys = ["I", "I_sigI", "n_pixels"]
+
+        for key in map_keys:
+            maps[key] = defaultdict(float)
+            grids[key] = np.zeros(self.dmap_shape).flatten()
+
+        # reduce voxel values from a list to a single value
+        for key, value in shell_dict.iteritems():
+            maps['I'][key] = np.mean(value)
+            if np.std(value)!=0:
+                maps['I_sigI'][key] = np.mean(value)/np.std(value)
+            maps['n_pixels'][key] = len(value)
+
+        # format as a 3d grid in shape of final map
+        for key in map_keys:
+            grids[key][np.array(maps[key].keys())] = np.array(maps[key].values())
+            grids[key] = grids[key].reshape(self.dmap_shape)[1:,1:,1:]
+
+        return maps, grids
