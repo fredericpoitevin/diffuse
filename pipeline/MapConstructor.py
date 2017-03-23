@@ -70,18 +70,20 @@ class GenerateMap:
 
         # eliminate invalid datapoints in the indexed image
         data_res = map_utils.compute_resolution(self.system['space_group'], self.system['cell'], indexed)
-        data_subset = indexed[np.where((data_res > self.system['d'] - 0.1) & (indexed[:,3]>0))[0]]
+        res_invalid = np.where(data_res < self.system['d'] - 0.1)[0]
+
+        h_invalid = np.where((indexed[:,0]<(np.min(self.edges['h']))) | (indexed[:,0]>(np.max(self.edges['h']))))[0]
+        k_invalid = np.where((indexed[:,1]<(np.min(self.edges['k']))) | (indexed[:,1]>(np.max(self.edges['k']))))[0]
+        l_invalid = np.where((indexed[:,2]<(np.min(self.edges['l']))) | (indexed[:,2]>(np.max(self.edges['l']))))[0]
+        I_invalid = np.where((indexed[:,3]<=0))[0]
+
+        invalid_idx = np.unique(np.concatenate((h_invalid, k_invalid, l_invalid, I_invalid, res_invalid)))
+        data_subset = np.delete(indexed, invalid_idx, 0)
         
         # digitize and ravel data such that each datapoint is associated with a 1D identifier
         dig_data = np.array((np.digitize(data_subset[:,0], self.edges['h']), 
                              np.digitize(data_subset[:,1], self.edges['k']), 
-                             np.digitize(data_subset[:,2], self.edges['l'])))
-        
-        invalid = np.unique(np.hstack((np.where(dig_data[0]>=self.dmap_shape[0]),
-                                       np.where(dig_data[1]>=self.dmap_shape[1]),
-                                       np.where(dig_data[2]>=self.dmap_shape[2]))))
-
-        dig_data = np.delete(dig_data, invalid, axis=1)
+                             np.digitize(data_subset[:,2], self.edges['l'])))        
         rav_data = np.ravel_multi_index(dig_data, self.dmap_shape)
 
         # determine the voxels observed in this image and specified shell
