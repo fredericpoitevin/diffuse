@@ -3,7 +3,9 @@ Description of scripts (in order of use):
 - Indexer.py: class for indexing diffraction images and processing intensities, as necessary
 - index.py: wrapper for using Indexer class
 - amend_system.py: revise system dictionary to include information relevant for map construction
-- PredictBragg.py: generates image masks by predicting the shape/extent of Bragg peaks.
+- MaskBragg.py: class for generating and applying Bragg masks
+- mask_bragg.py: wrapper for using MaskBragg class, with three modes: generate, compile, and apply
+- construct_maps.py: script for binning pixels into map voxels and generating final map
 
 - reference.py: tests of above scripts
 
