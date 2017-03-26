@@ -1,4 +1,5 @@
-import itertools, math
+import itertools, math, os.path, glob
+import cPickle as pickle
 import numpy as np
 
 """ Miscellanious scripts useful for the construction of diffuse maps. """
@@ -99,3 +100,111 @@ def determine_map_bins(cell_constants, space_group, d, subsampling):
     return bins
 
 
+def ind_rprofile(system, indexed, n_bins, num = -1, median=False):
+    """
+    Compute radial intensity profile for an indexed image.
+    Inputs: system, dictionary that contains cell dimensions
+            indexed, indexed image with columns (h,k,l,I)
+            n_bins, number of bins in q-space
+            num, image number. if -1, use cell constants for A
+            median, if False (default), compute mean intensity
+    Outputs: rS, mean or median |S| for each bin
+             rI, radial intensity profile
+    """
+
+    # compute magnitude of scattering vector
+    if num == -1:
+        A_inv = np.linalg.inv(np.diag(system['cell'][:3]))
+    else:
+        A_inv = np.linalg.inv(system['A_batch'][(num - 1)/system['batch_size']])
+
+    s_vecs = np.inner(A_inv, indexed[:,:3]).T
+    s_mags = np.linalg.norm(s_vecs, axis=1)
+
+    # bin intensities into shells in scattering space
+    x, y = s_mags, indexed[:,-1].copy()
+    n_per_shell, shells = np.histogram(x[y > 0], bins = n_bins)
+    shells = np.concatenate((shells, [shells[-1] + (shells[-1] - shells[-2])]))
+
+    dx = np.digitize(x, shells)
+    bin_sel = np.array([len(y[(dx == i) & (y > 0)]) for i in range(np.min(dx), np.max(dx) + 1)])
+    bin_idx = np.where(bin_sel > 2)[0] + np.min(dx) # avoid empty bins
+
+    # compute median or mean mag(S) and intensity
+    if median is True:
+        rS = np.array([np.median(x[(dx == i) & (y > 0)]) for i in bin_idx])
+        rI = np.array([np.median(y[(dx == i) & (y > 0)]) for i in bin_idx])
+    else:
+        rS = np.array([np.mean(x[(dx == i) & (y > 0)]) for i in bin_idx])
+        rI = np.array([np.mean(y[(dx == i) & (y > 0)]) for i in bin_idx])
+
+    return rS, rI
+
+
+def mtx_rprofile(system, dir_pI, n_bins, median = False):
+    """
+    Generate a matrix of radial intensity profiles for a dataset. The matrix will
+    have shape (n_images + 1, n_bins), where the first row corresponds to the |S|
+    at which intensities in each image were evaluated.
+
+    Inputs: system, dictionary that contains cell dimensions
+            dir_pI, directory/prefix for intensity files
+            n_bins, number of bins in scattering space
+            median, if False (default), compute mean intensity
+    Output: rSI_mtx, matrix of radial intensity profiles and associated |S|
+    """
+
+    # retrieve ordered file lists for indexed images and intensities
+    file_glob = glob.glob(system["map_path"] + "indexed/*.npy")
+    filelist = sorted(file_glob, key = lambda name: int(name.split('_')[-1].split('.')[0]))
+
+    if dir_pI != 'indexed':
+        I_glob = glob.glob(system["map_path"] + dir_pI + "/*.npy")
+        Ilist = sorted(I_glob, key = lambda name: int(name.split('_')[-1].split('.')[0]))
+
+    # set up matrices for preliminary storage and output
+    prelim, rSI_mtx = np.zeros((len(filelist)*2, n_bins)), np.zeros((len(filelist)+1, n_bins))
+
+    # loop over each file, computing radial intensity profile
+    for i in range(len(filelist)):
+        print "on image %i" %i
+
+        indexed = np.load(filelist[i])
+        if dir_pI != 'indexed':
+            assert filelist[i].split('_')[-1].split('.')[0] == Ilist[i].split('_')[-1].split('.')[0]
+            imgI = np.load(Ilist[i])
+            indexed[:,-1] = imgI            
+
+        img_num = i + 1 # 1-indexed
+        prelim[i], prelim[i+len(filelist)] = ind_rprofile(system, indexed, n_bins, img_num, median)
+
+    # compute mean |S| profile and interpolate all q's onto this S
+    rSI_mtx[0] = np.mean(prelim[:len(filelist)].T, axis=1)
+    for i in range(len(filelist)):
+        print "interpolation image %i" %i
+        rSI_mtx[i+1] = np.interp(rSI_mtx[0], prelim[i], prelim[i+len(filelist)])
+
+    return rSI_mtx
+
+
+def process_stol():
+    """ 
+    Convert *.stol files in 'reference' directory from F(sin(theta)/lambda) to I(S).
+    Inputs: None
+    Output: dict[scattering source] = array(|S|, I)
+    """
+
+    stol_sI = dict()
+    if os.path.exists("reference/water.stol"):
+        stol_sI['water'] = np.loadtxt("reference/water.stol")
+    if os.path.exists("reference/Paratone-N.stol"):
+        stol_sI['paratone'] = np.loadtxt("reference/Paratone-N.stol")
+
+    for key in stol_sI.keys():
+        stol_sI[key][:,0] = 2.0*stol_sI[key][:,0]
+        stol_sI[key][:,1] = np.square(stol_sI[key][:,1])
+
+    if len(stol_sI.keys()) != 2:
+        print "Warning: one or both of the .stol files not found."
+        
+    return stol_sI
