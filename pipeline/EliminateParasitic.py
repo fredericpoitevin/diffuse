@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import scipy.optimize, scipy.spatial
 import cPickle as pickle
 import numpy as np
@@ -6,14 +7,18 @@ import glob, sys, time, itertools
 
 class GenerateBackground:
 
-    def __init__(self, system, dir_pI, n_bins, rI_input = None):
+    """
+    Class with functions useful for generating an approach for eliminating parasitic scattering,
+    particularly from paratone or water. Sub-strategies include principal component analysis and
+    subtraction of fitted water or paratone scattering profiles, with the goal of minimizing the 
+    difference between different images' radial intensity profiles. The stored params dictionary
+    contains parameters that can be used with the ApplyBackground class for processing images.
+    """
+    
+    def __init__(self, system):
         self.stols = map_utils.process_stol()
         self.system = system
-        self.profiles, self.params = dict(), dict()
-        if rI_input is None:
-            self.profiles['input'] = map_utils.mtx_rprofile(system, dir_pI, n_bins, median=True)
-        else:
-            self.profiles['input'] = rI_input
+        self.params = OrderedDict()
 
     def opt_ind_paratone(self, S, profile):
         """ 
@@ -132,3 +137,71 @@ class GenerateBackground:
         
         return rI_output
         
+
+class ApplyBackground:
+
+    """
+    Class for applying the background subtraction strategy devised/specified by GenerateBackground.
+    Supported functions are subtraction of scaled water and paratone scattering profiles, in addition
+    to subtraction of the background profile calculated from principal component analysis. The order
+    specified by the GenerateBackground output dictionary is preserved in processing images.
+    """
+
+    def __init__(self, system, params):
+
+        self.stols = map_utils.process_stol()
+        self.system = system
+        self.params = params
+
+    def compute_smags(self, indexed, num):
+        """
+        Compute the magnitude of the scattering/hkl vector for every datapoint in indexed.
+        Input num corresponds to 1-indexed image number; if -1, then 'cell' parameters are
+        used to compute crystal setting matrix.
+        """
+        
+        if num == -1:
+            A_inv = np.linalg.inv(np.diag(self.system['cell'][:3]))
+        else:
+            A_inv = np.linalg.inv(self.system['A_batch'][(num - 1)/self.system['batch_size']])
+
+        s_vecs = np.inner(A_inv, indexed[:,:3]).T
+
+        return np.linalg.norm(s_vecs, axis=1)
+
+    def scale_water(self, s_mags, num):
+        """
+        Return scaled water profile to be subtracted. 
+        """
+
+        assert self.params.has_key('water')
+
+        w_scale = self.params['water'][num - 1]
+        return w_scale*np.interp(s_mags, self.stols['water'][:,0], self.stols['water'][:,1])
+
+    def scale_paratone(self, s_mags, num):
+        """
+        Return scaled paratone profile to be subtracted. If paratone parameter array is 2D,
+        assume first and second column correspond to q-offset and scale, respectively; if
+        1D, assume that array corresponds to scale factors only.
+        """
+
+        assert self.params.has_key('paratone')
+        img_params = self.params['paratone'][num - 1]
+
+        if img_params.shape[0] == 2:
+            p_offset, p_scale = img_params[0], img_params[1]
+        else:
+            p_offset, p_scale = 0, img_params
+
+        return p_scale*np.interp(s_mags, self.stols['paratone'][:,0] - p_offset, self.stols['paratone'][:,1])
+
+    def interp_pca(self, s_mags, num):
+        """
+        Interpolate the background profile computed from PCA.
+        """
+        
+        assert self.params.has_key('pca_bgd')
+
+        pca_S, pca_Ibgd = self.params['pca_bgd'][0], self.params['pca_bgd'][num]
+        return np.interp(s_mags, pca_S, pca_Ibgd)

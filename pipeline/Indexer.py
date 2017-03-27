@@ -188,7 +188,7 @@ class Indexer:
             intensities[ ~self.system['mask'] ] = -1
         intensities = intensities.flatten().astype(float)
         if 'scales' in self.system.keys():
-            intensities /= self.system['scales'][image_num - 1]
+            intensities *= self.system['scales'][image_num - 1]
         if 'solid_angle' in self.system.keys():
             intensities /= self.system['solid_angle']
         if 'polarization' in self.system.keys():

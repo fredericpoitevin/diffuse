@@ -167,7 +167,6 @@ def mtx_rprofile(system, dir_pI, n_bins, median = False):
 
     # loop over each file, computing radial intensity profile
     for i in range(len(filelist)):
-        print "on image %i" %i
 
         indexed = np.load(filelist[i])
         if dir_pI != 'indexed':
@@ -181,7 +180,6 @@ def mtx_rprofile(system, dir_pI, n_bins, median = False):
     # compute mean |S| profile and interpolate all q's onto this S
     rSI_mtx[0] = np.mean(prelim[:len(filelist)].T, axis=1)
     for i in range(len(filelist)):
-        print "interpolation image %i" %i
         rSI_mtx[i+1] = np.interp(rSI_mtx[0], prelim[i], prelim[i+len(filelist)])
 
     return rSI_mtx
