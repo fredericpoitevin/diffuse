@@ -105,34 +105,6 @@ def generate_mesh(system):
     return mesh
 
 
-def cc_by_shell(system, n_shells, map1, map2):
-    """
-    Compute multiplicity-weighted correlation coefficient across n_shells resolution shells 
-    (with spacing even in 1/d^3); return np.arrays of CC and median resolution of shells.
-    """
-
-    hkl_grid = np.array(list(itertools.product(system['bins']['h'], system['bins']['k'], system['bins']['l'])))
-    res = compute_resolution(system['space_group'], system['cell'], hkl_grid)
-
-    inv_dcubed = 1.0/(res**3.0)
-    nvox_per_shell, shell_bounds = np.histogram(inv_dcubed[res > system['d']], bins = n_shells)
-
-    assert system['d'] > 1.0
-    shell_bounds = np.concatenate((shell_bounds, [1.0]))
-    vx_dig = np.digitize(inv_dcubed, shell_bounds)
-    res_bins = (1.0/shell_bounds[:-1])**(1.0/3)
-
-    cc_shell, res_shell = np.zeros(n_shells), np.zeros(n_shells)
-    map1, map2 = map1.flatten(), map2.flatten()
-    for i in range(1, n_shells+1):
-        idx = np.where(vx_dig==i)[0]
-        cc_shell[i-1] = mweighted_cc(map1[idx], map2[idx], mult = mult)
-        valid = reduce(np.intersect1d, (np.where(map1>0)[0], np.where(map2>0)[0], idx))
-        res_shell[i-1] = np.mean(res[reduce(np.intersect1d, (np.where(map1>0)[0], np.where(map2>0)[0], idx))])
-
-    return res_shell, cc_shell
-
-
 def compute_qmags(system):
     """
     Compute the magnitudes of the q vectors for the flattened map grid specified 
