@@ -91,11 +91,11 @@ def symmetrize(input_map, symm_idx, from_asu = False):
     return symm_map
 
 
-def generate_mesh(A, bins):
+def generate_mesh(system, bins):
     """
     Generate qvector mesh for use with plt.pcolormesh from A matrix and bins.
     """
-    A_inv = np.linalg.inv(A)
+    A_inv = np.linalg.inv(np.diag(system['cell'][:3]))
 
     mesh = dict()
     mesh['projX'] = np.meshgrid(2*np.pi*np.dot(A_inv[2][2], bins['l']), 2*np.pi*np.dot(A_inv[1][1], bins['k']))
@@ -129,6 +129,19 @@ def mweighted_cc(map1, map2, mult = None):
     map1_sel, map2_sel, mult_sel = map1_sel[valid_idx], map2_sel[valid_idx], mult[valid_idx]
 
     return w_cov(map1_sel, map2_sel, mult_sel) / np.sqrt(w_cov(map1_sel, map1_sel, mult_sel) * w_cov(map2_sel, map2_sel, mult_sel))
+
+
+def compute_qmags(system):
+    """
+    Compute the magnitudes of the q vectors for the flattened map grid specified 
+    in the system.pickle file.
+    """
+    
+    A_inv = np.linalg.inv(np.diag(system['cell'][:3]))
+    hkl_grid = np.array(list(itertools.product(system['bins']['h'], system['bins']['k'], system['bins']['l'])))
+    
+    q_vecs = 2*np.pi*np.inner(A_inv, hkl_grid).T 
+    return np.linalg.norm(q_vecs, axis=1)
 
 
 def compute_resolution(space_group, cell_constants, s_grid):
@@ -165,3 +178,44 @@ def compute_resolution(space_group, cell_constants, s_grid):
     res = 1.0 / inv_d
 
     return res
+
+
+def subtract_radavg(system, input_map, n_bins, medians = False):
+    """
+    Subtract the radial average from the input_map. Platform such that smallest value of
+    non-empty voxel is greater than zero (and empty voxels remain zero).
+
+    Inputs: system, system.pickle file with map and space group information
+            input_map, map from which to subtract the radial average
+            n_bins, number of bins across which to determine the radial average profile
+    Output: aniso_map, input_map with radial average subtracted
+    """
+
+    # compute resolution associated with voxels
+    hkl = np.array(list(itertools.product(system['bins']['h'], system['bins']['k'], system['bins']['l'])))
+    hkl_res = map_utils.compute_resolution(system['space_group'], system['cell'], hkl)
+
+    # perform binning, linear in 1/d
+    x, y = 1.0/hkl_res[input_map.flatten()>0], input_map.copy().flatten()[input_map.flatten()>0]
+    n_per_shell, shells = np.histogram(x, bins = n_bins)
+    shells = np.concatenate((shells, [shells[-1] + (shells[-1] - shells[-2])]))
+    print 'shell spacing: %f, avg, min voxels per shell: %i, %i' \
+        %((shells[-1] - shells[-2]), np.mean(n_per_shell), np.min(n_per_shell))
+    
+    # create resolution vs average radial intensity profile
+    dx = np.digitize(x, shells)
+    if medians is False:
+        xm = np.array([np.mean(x[np.where(dx == i)]) for i in range(np.min(dx), np.max(dx)+1)])
+        ym = np.array([np.mean(y[np.where(dx == i)]) for i in range(np.min(dx), np.max(dx)+1)])
+    else:
+        xm = np.array([np.median(x[np.where(dx == i)]) for i in range(np.min(dx), np.max(dx)+1)])
+        ym = np.array([np.median(y[np.where(dx == i)]) for i in range(np.min(dx), np.max(dx)+1)])
+
+    # subtract radial average
+    masked_sub = y - np.interp(x, xm, ym)
+    aniso_map = np.zeros(hkl_res.shape)
+    aniso_map[input_map.flatten()>0] = masked_sub - np.min(masked_sub) + np.min(y)
+    
+    return aniso_map
+
+
