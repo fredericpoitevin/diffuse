@@ -29,6 +29,28 @@ def split_unitcell(uc_pdb, n_asus):
     return asus
 
 
+def retrieve_bfactors(pdb_path, as_delta = False):
+    """
+    Retrieve isotropic B factors from input_pdb; Note that pdb_path corresponds to 
+    the pdb text file, _not_ an MDTraj pdb object. If as_delta is True, convert B 
+    factors to root mean square atomic displacements, deltas.
+    """
+
+    # fetch values from B factor column in PDB file
+    pdb_bfactors = list()
+    with open(pdb_path, "r") as f:
+        for line in f:
+            if line.startswith('ATOM'):
+                pdb_bfactors.append(float(line[60:66]))
+    pdb_bfactors = np.array(pdb_bfactors)
+
+    # return B factors or deltas
+    if as_delta is False:
+        return pdb_bfactors
+    else:
+        return np.sqrt(pdb_bfactors/8/np.square(np.pi))
+
+
 def generate_symmates(symm_ops, bins, subsampling):
     """
     Return a dictionary of np.arrays such that the nth term of each array is a set of
