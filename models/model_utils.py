@@ -127,6 +127,24 @@ def generate_mesh(system):
     return mesh
 
 
+def generate_extents(system):
+    """
+    Generate dictionary of tuples to be used for plotting with plt.imshow.
+    """
+    
+    A_inv = np.linalg.inv(np.diag(system['cell'][:3]))
+    hkl_grid = np.array(list(itertools.product(system['bins']['h'], system['bins']['k'], system['bins']['l'])))
+    q_vecs = 2*np.pi*np.inner(A_inv, hkl_grid).T
+
+    max_h, max_k, max_l = [np.max(q_vecs[:,i]) for i in range(3)]
+    extent = dict()
+    extent['0kl'] = (-1.0*max_l, max_l, -1.0*max_k, max_k)
+    extent['h0l'] = (-1.0*max_l, max_l, -1.0*max_h, max_h)
+    extent['hk0'] = (-1.0*max_k, max_k, -1.0*max_h, max_h)
+
+    return extent
+
+
 def compute_qmags(system):
     """
     Compute the magnitudes of the q vectors for the flattened map grid specified 
