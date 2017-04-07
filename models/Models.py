@@ -1,4 +1,4 @@
-import model_utils, map_utils
+import model_utils
 from scipy import signal
 import scipy.optimize
 import time, itertools, glob
@@ -6,8 +6,8 @@ import mdtraj as md
 import numpy as np
 
 """
-Distinct disorder models are written into different classes, generally with a 'scale'
-and an 'optimize' feature.
+Distinct disorder models are written into different classes, with functions relevant to
+building or fitting that model as class functions.
 """
 
 class Chapman:
@@ -65,11 +65,44 @@ class Chapman:
         return scaled_transform, m_f, b_f, sigma_f
 
 
-class NormalModes:
+class Wall:
+    """
+    Wall/liquid-like motions model. Recommendation is to fit parameters by grid search since 
+    achieving convergence is difficult. This was the approach taken by Wall, ME et al. 1997.
+    """
 
+    def scale(self, transform, qmags, map_shape, sigma, gamma, model):
+        """
+        Scale the input molecular transform using the Wall model. Tunable disorder parameters 
+        are sigma and gamma, which correspond to the size of the global atomic displacements 
+        and the correlation length, respectively. Code courtesy TJL.
+        """
+
+        transform, qmags = transform.reshape(map_shape), qmags.reshape(map_shape)
+
+        # generate kernel
+        kernel = np.zeros_like(qmags)
+        if model == 'exponential':
+            kernel = 8.0 * np.pi * (gamma**3) / np.square(1 + np.square(gamma * qmags))
+        elif model == 'stretched':
+            kernel = 4.0 * np.pi * (gamma**3) / (1 + np.square(gamma * qmags))
+        else:
+            raise ValueError('model must be {stretched, exponential}')
+
+        # convolve kernel and map
+        wall_map = signal.fftconvolve(transform, kernel, mode='same')
+
+        # appy scaling
+        q2s2 = np.square(qmags * sigma)
+        wall_map *= np.exp(-q2s2) * q2s2
+        wall_map[transform==0] = 0
+
+        return wall_map
+
+
+class NormalModes:
     """
     Various utilities useful for assessing normal modes models.
-
     """
 
     def read_corrmat(self, filepath, n_atoms):
