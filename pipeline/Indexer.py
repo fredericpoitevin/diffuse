@@ -47,7 +47,7 @@ class Indexer:
         u_slow = self.system['s']/np.linalg.norm(self.system['s'])
 
         normal = np.cross(u_fast, u_slow)
-        dist = np.dot(self.system['p'][(image_num - 1)/self.system['batch_size']], normal)
+        dist = np.dot(self.system['p'][self.system['img2batch'][image_num]], normal)
         if dist < 0:
             normal = -1*normal
 
@@ -97,7 +97,7 @@ class Indexer:
         mg = np.mgrid[0:self.system['shape'][0]-1:1j*self.system['shape'][0],
                       0:self.system['shape'][1]-1:1j*self.system['shape'][1]]
         xyz = np.outer(mg[0].flatten(), self.system['s']) + np.outer(mg[1].flatten(), self.system['f'])
-        xyz += self.system['p'][(image_num - 1)/self.system['batch_size']]
+        xyz += self.system['p'][self.system['img2batch'][image_num]]
 
         norms = np.linalg.norm(xyz, axis=1)
         s1 = np.divide(xyz.T, norms).T
@@ -109,14 +109,14 @@ class Indexer:
             xyz -= self.system['parallax']
 
         # calculate scattering vectors, S, related to the q vector by: q = 2*pi*S
-        beam = self.system['beam'][(image_num - 1)/self.system['batch_size']]\
-            /np.linalg.norm(self.system['beam'][(image_num - 1)/self.system['batch_size']])
+        beam = self.system['beam'][self.system['img2batch'][image_num]]\
+            /np.linalg.norm(self.system['beam'][self.system['img2batch'][image_num]])
         S = (1.0/self.system['wavelength'])*(s1 - beam)
 
         # rotate orientation matrix and compute hkl
         rot_mat = map_utils.rotation_matrix(self.system['rot_axis'], \
                                                 -1*np.deg2rad(self.system['rot_phi']*(image_num-1)+self.system['rot_phi']))
-        rot_cryst = np.dot(self.system['A_batch'][(image_num - 1)/self.system['batch_size']], rot_mat)
+        rot_cryst = np.dot(self.system['A_batch'][self.system['img2batch'][image_num]], rot_mat)
         hkl = np.inner(rot_cryst, S).T
         if 'xds_path' in self.system.keys():
             delta = self._validate(hkl.copy(), image_num)
@@ -188,6 +188,7 @@ class Indexer:
             intensities[ ~self.system['mask'] ] = -1
         intensities = intensities.flatten().astype(float)
         if 'scales' in self.system.keys():
+            #intensities /= self.system['scales'][image_num - 1]
             intensities *= self.system['scales'][image_num - 1]
         if 'solid_angle' in self.system.keys():
             intensities /= self.system['solid_angle']

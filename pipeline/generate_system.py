@@ -55,6 +55,13 @@ def extract_geometry(xds_path):
             print "Please ensure that image suffixes are 1-indexed. "
         system['n_batch'] = int(img_range[-1]) / system['batch_size']
 
+        # add image2batch mapping to circumvent problem of missing images
+        bounds = [(int(s.split()[-3]), int(s.split()[-1])+1) for s in content if "PROCESSING OF IMAGES" in s]
+        system['img2batch'] = dict()
+        for nbatch in range(len(bounds)):
+            for image in range(bounds[nbatch][0], bounds[nbatch][1]):
+                system['img2batch'][image] = nbatch
+
         # extract orientation (A) matrices and wavelength
         A_matrices = [s.strip('\n').split()[5:] for s in content if "COORDINATES OF UNIT CELL" in s]
         A_matrices = np.asarray(A_matrices, dtype=float)
@@ -79,11 +86,13 @@ def extract_geometry(xds_path):
 
         # extract per image scale factor
         idx = [i for i,s in enumerate(content) if 'IMAGE IER' in s]
-        system['scales'] = np.zeros(int(img_range[-1]))
-        for nbatch in range(len(idx)):
-            info = content[idx[nbatch] + 1 : idx[nbatch] + system['batch_size'] + 1]
-            batch_scales = np.array([l.split()[2] for l in info], dtype=float)
-            system['scales'][nbatch*system['batch_size'] : nbatch*system['batch_size']+system['batch_size']] = batch_scales
+        scales = list()
+        for start in idx:
+            start += 1
+            while content[start]!='\n':
+                scales.append(float(content[start].split()[2]))
+                start += 1
+        system['scales'] = np.array(scales)
 
         # extract estimated beam divergence and reflecting range e.s.d's (latter is mosaicity)
         idx = [i for i,s in enumerate(content) if 'SUGGESTED VALUES FOR INPUT PARAMETERS' in s][0]

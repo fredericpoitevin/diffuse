@@ -14,47 +14,47 @@ class PredictBragg:
     to be spanned by Bragg reflections are marked with a value of 1; Bragg centers are marked by a value of 10.    
     """
 
-    def __init__(self, system, nbatch, sys_absences = False):
+    def __init__(self, system, nbatch, sys_absences):
         """
-        Initialize class. Required inputs are system.pickle and XDS batch number.
-        If optional input sys_absences is True, then it's assumed that the space
-        group has 21 screw axes along each unit cell axis.
-
+        Initialize class. Required inputs are system.pickle, XDS batch number, and a 3-digit 
+        string corresponding to reflection conditions along the H,K,L axes, e.g. '222' for 
+        P212121, '002' for P6322, and '000' for no screw axes.
         """
         self.system = system
         self.nbatch = nbatch
-        self.sys_absences = sys_absences # currently only 212121 systematic absences are supported
+        self.sys_absences = sys_absences 
         self.predicted = self.predict_s1()
 
     def _filter_hkl(self, hkl):
         """
         Minimally remove the origin Miller index (0,0,0) and Miller indices that are of higher
         resolution than the map resolution - 0.2 from the grid of hkl vectors. Optionally remove
-        Miller indices that will be extinguished due to 21 screw axes along each unit cell direction
-        if self.sys_absences is True.
+        Miller indices that will be extinguished due to screw axes along each unit cell direction
+        if self.sys_absences is not '000'.
         """
 
+        # dictionary for storing invalid indices
+        invalid = dict()
+        
         # remove systematic absences resulting from 21 screw axes along each axis
-        if self.sys_absences is True:
-            h_idx = np.where((hkl[:,0]%2!=0) & (hkl[:,1]==0) & (hkl[:,2]==0))[0]
-            k_idx = np.where((hkl[:,0]==0) & (hkl[:,1]%2!=0) & (hkl[:,2]==0))[0]
-            l_idx = np.where((hkl[:,0]==0) & (hkl[:,1]==0) & (hkl[:,2]%2!=0))[0]
-
+        if int(self.sys_absences[0]) != 0:
+            invalid['h_idx'] = np.where((hkl[:,0] % int(self.sys_absences[0]) != 0) & (hkl[:,1] == 0) & (hkl[:,2] == 0))[0]
+        if int(self.sys_absences[1]) != 0:
+            invalid['k_idx'] = np.where((hkl[:,0] == 0) & (hkl[:,1] % int(self.sys_absences[1]) != 0) & (hkl[:,2] == 0))[0]
+        if int(self.sys_absences[2]) != 0:
+            invalid['l_idx'] = np.where((hkl[:,0] == 0) & (hkl[:,1] == 0) & (hkl[:,2] % int(self.sys_absences[2]) != 0))[0]
+            
         # remove origin (0,0,0) since we never see this
-        center = np.where((hkl[:,0]==0) & (hkl[:,1]==0) & (hkl[:,2]==0))[0]
+        invalid['center'] = np.where((hkl[:,0]==0) & (hkl[:,1]==0) & (hkl[:,2]==0))[0]
 
         # remove Millers beyond resolution cut-off
         A_inv = np.linalg.inv(self.system['A_batch'][self.nbatch])
         qvecs = np.inner(A_inv, hkl).T
         qmags = np.linalg.norm(qvecs, axis=1)
         qmags[qmags==0] = 1e-5 # set origin miller arbitrarily small to avoid errors
-        res_invalid = np.where(1.0/qmags < (self.system['d'] - 0.2))[0]
+        invalid['res'] = np.where(1.0/qmags < (self.system['d'] - 0.2))[0]
 
-        if self.sys_absences is True:
-            invalid_idx = np.concatenate((h_idx, k_idx, l_idx, center, res_invalid))
-        else:
-            invalid_idx = np.concatenate((center, res_invalid))
-
+        invalid_idx = np.concatenate([invalid[key] for key in invalid.keys()])        
         return np.delete(hkl, invalid_idx, axis=0)
 
     def _predict_phi(self, bins):
@@ -117,9 +117,15 @@ class PredictBragg:
             phi2[wrap_idx2] += 360
 
             # determine which millers will be observed in that batch
-            bps = self.system['batch_size']*self.system['rot_phi'] # batch phi span
-            lower = bps*batch + self.system['rot_phi']/2.0
-            upper = bps*batch + bps + self.system['rot_phi']/2.0
+            ##bps = self.system['batch_size']*self.system['rot_phi'] # batch phi span
+            ##lower = bps*batch + self.system['rot_phi']/2.0
+            ##upper = bps*batch + bps + self.system['rot_phi']/2.0
+
+            idx = np.where(np.array(self.system['img2batch'].values()) == batch)[0]
+            bps, l_idx, u_idx = len(idx)*self.system['rot_phi'], idx[0] + 1, idx[-1] + 1
+            lower = l_idx*self.system['rot_phi'] - 0.5*self.system['rot_phi']
+            upper = u_idx*self.system['rot_phi'] + 0.5*self.system['rot_phi']
+            
             if batch == 0: 
                 lower -= bps
             if batch == self.system['n_batch'] - 1:
@@ -146,9 +152,15 @@ class PredictBragg:
         hkl_s1_phi = np.zeros((hkl_phi.shape[0], 7))
 
         # determine Millers whose centroids fall in batch bounds
-        bps = self.system['batch_size']*self.system['rot_phi'] # batch phi span
-        lower = bps*self.nbatch + self.system['rot_phi']/2.0
-        upper = bps*self.nbatch + bps + self.system['rot_phi']/2.0
+        ##bps = self.system['batch_size']*self.system['rot_phi'] # batch phi span
+        ##lower = bps*self.nbatch + self.system['rot_phi']/2.0
+        ##upper = bps*self.nbatch + bps + self.system['rot_phi']/2.0
+
+        idx = np.where(np.array(self.system['img2batch'].values()) == self.nbatch)[0]
+        bps, l_idx, u_idx = len(idx)*self.system['rot_phi'], idx[0] + 1, idx[-1] + 1
+        lower = l_idx*self.system['rot_phi'] - 0.5*self.system['rot_phi']
+        upper = u_idx*self.system['rot_phi'] + 0.5*self.system['rot_phi']
+        
         if self.nbatch == 0:
             lower -= bps
         if self.nbatch == self.system['n_batch'] - 1:
@@ -226,14 +238,16 @@ class PredictBragg:
         e3 = np.divide(e3.T, np.linalg.norm(e3, axis=1)).T
 
         # detector-relevant items: setting up masks and calculating associated s1_vecs
-        num_images = self.system['batch_size']*self.system['n_batch']
+        ##num_images = self.system['batch_size']*self.system['n_batch']
+        num_images = len(self.system['img2batch'])
         dtc_size = self.system['shape'][0]*self.system['shape'][1]
         rs_mask = np.zeros((num_images, dtc_size), dtype=np.uint8)
         sdash = self._px_to_sdash()
 
         # compute image span (eps3 in Kabsch nomenclature) across which Millers will be observed
-        zeta = np.tile(np.inner(self.system['rot_axis'], e1), (360, 1)).T
-        end_phi = self.system['batch_size']*self.system['n_batch']*self.system['rot_phi'] + self.system['rot_phi']
+        zeta = np.tile(np.inner(self.system['rot_axis'], e1), (num_images, 1)).T
+        ##end_phi = self.system['batch_size']*self.system['n_batch']*self.system['rot_phi'] + self.system['rot_phi']
+        end_phi = num_images*self.system['rot_phi'] + self.system['rot_phi']
         dpsi = np.tile(np.arange(self.system['rot_phi'], end_phi, self.system['rot_phi']), \
                            (s1_batch.shape[0], 1)) - np.tile(self.predicted[:,3], (num_images, 1)).T
         frames = np.where(np.abs(zeta * dpsi) < delta_m)
@@ -255,7 +269,7 @@ class PredictBragg:
                 rs_mask[images[0]:images[-1]+1, flattened] = 10 
 
                 if counter < 200:
-                    print idx, ' '.join(map(str, self.predicted[idx, :4])), len(images), len(xy_obs)
+                    print idx, ' '.join(map(str, self.predicted[idx, :4])), xcen, ycen, len(images), len(xy_obs)
                     counter += 1
 
         self._save_masks(rs_mask)
@@ -360,7 +374,8 @@ class ApplyMask:
         """
 
         # bin intensities into n_bins shells of equal spacing in inverse Angstrom
-        rot_svecs = np.inner(np.linalg.inv(self.system['A_batch'][(self.num - 1)/self.system['batch_size']]), self.indexed[:,:3]).T
+        rot_svecs = np.inner(np.linalg.inv(self.system['A_batch'][self.system['img2batch'][self.num]]), self.indexed[:,:3]).T
+        #rot_svecs = np.inner(np.linalg.inv(self.system['A_batch'][(self.num - 1)/self.system['batch_size']]), self.indexed[:,:3]).T
         s_mags = np.linalg.norm(rot_svecs, axis=1)
 
         x, y = s_mags, imgI.copy()

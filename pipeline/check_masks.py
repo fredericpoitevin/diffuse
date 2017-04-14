@@ -23,7 +23,7 @@ def plotI(num, system, smags, I0, I1, I2):
     ax3.scatter(smags[((1.0/smags > system['d'])*(I2>0))], I2[((1.0/smags > system['d'])*(I2>0))])
 
     for ax in [ax1, ax2, ax3]:
-        ax.set_xlim(0, 0.67)
+        ax.set_xlim(0, 1.0/system['d'])
         ax.set_xlabel(r'|S|($\AA$$^{-1}$)')
     ax1.set_ylabel("Intensity")
 

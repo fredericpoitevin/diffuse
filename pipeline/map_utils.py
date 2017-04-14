@@ -116,7 +116,8 @@ def ind_rprofile(system, indexed, n_bins, num = -1, median=False):
     if num == -1:
         A_inv = np.linalg.inv(np.diag(system['cell'][:3]))
     else:
-        A_inv = np.linalg.inv(system['A_batch'][(num - 1)/system['batch_size']])
+        #A_inv = np.linalg.inv(system['A_batch'][(num - 1)/system['batch_size']])
+        A_inv = np.linalg.inv(system['A_batch'][system['img2batch'][num]])
 
     s_vecs = np.inner(A_inv, indexed[:,:3]).T
     s_mags = np.linalg.norm(s_vecs, axis=1)
@@ -174,7 +175,8 @@ def mtx_rprofile(system, dir_pI, n_bins, median = False):
             imgI = np.load(Ilist[i])
             indexed[:,-1] = imgI            
 
-        img_num = i + 1 # 1-indexed
+        #img_num = i + 1 # 1-indexed
+        img_num = int(filelist[i].split('_')[-1].split('.')[0])
         prelim[i], prelim[i+len(filelist)] = ind_rprofile(system, indexed, n_bins, img_num, median)
 
     # compute mean |S| profile and interpolate all q's onto this S

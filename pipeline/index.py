@@ -33,12 +33,8 @@ def index_data(system, image_dir, output_dir):
     Index images with Indexer class.
     Input parameters: system dictionary, image directory, directory for indexed .npy files
     Outputs: indexed .npy files, plot of average differences between Indexer results and INTEGRATE.HKL
-
     """
     
-    num_images = int(system['n_batch']*system['batch_size'])
-    deltas = np.zeros((num_images, 3))
-
     # assume that file numbers are 1-indexed and prefaced by final underscore in file name
     file_glob = glob.glob(image_dir + "*")
 
@@ -49,30 +45,34 @@ def index_data(system, image_dir, output_dir):
         file_glob.pop(idx) # eliminate the master.h5 file
 
     filelist = sorted(file_glob, key = lambda name: int(name.split('_')[-1].split('.')[0]))
-    if len(filelist) != num_images:
-        print "Warning: discrepancy predicted and found number of images"
-        num_images = len(filelist)
-
-    # set up instance of Indexer class
+    num_images = len(filelist)
+    deltas = np.zeros((num_images, 3))
+        
+    # set up instance of Indexer class and retrieve batch bounds
     indexer_obj = Indexer.Indexer(system)
+    keys, vals = system['img2batch'].keys(), system['img2batch'].values()
+    batch_ends = np.where(np.array([vals[v+1] - vals[v] for v in range(len(vals) - 1)]) != 0)[0]
+    batch_ends = np.array([keys[v] for v in batch_ends])
+    
+    for img in range(num_images):
 
-    for img in range(num_images): 
-        print "Indexing image %i" %img
+        img_num = int(filelist[img].split('_')[-1].split('.')[0])
+        print "Indexing image %i" %img_num
 
         # index image and process intensities; save as hklI
-        deltas[img] = indexer_obj.index(img + 1) # image suffixes should be 1-indexed
+        deltas[img] = indexer_obj.index(img_num) # image suffixes should be 1-indexed
 
         if h5 is True:
             imgI = load_h5(filelist[img])
         else:
             imgI = np.load(filelist[img])
 
-        indexer_obj.process_intensities(imgI, img + 1)
+        indexer_obj.process_intensities(imgI, img_num)
         np.save(output_dir + "hklI_%s.npy" %(filelist[img].split('_')[-1].split('.')[0]), indexer_obj.hklI)
 
         # reset hklI per image and corrections per batch
         indexer_obj.clear_hklI()
-        if (img % system['batch_size'] == 0) and (img != 0):
+        if img_num in batch_ends:
             indexer_obj.clear_corrections()
     
     return deltas
