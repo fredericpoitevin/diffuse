@@ -51,66 +51,134 @@ def retrieve_bfactors(pdb_path, as_delta = False):
         return np.sqrt(pdb_bfactors/8/np.square(np.pi))
 
 
-def generate_symmates(symm_ops, bins, subsampling):
+def generate_symmates(symm_ops, system, laue=True):
     """
     Return a dictionary of np.arrays such that the nth term of each array is a set of
     symmetry-equivalent indices in raveled format. Also return the corresponding set 
     of hkl vectors and multiplicities.
 
     Inputs: symm_ops, dictionary containing symmetry operators
-            bins, dictionary of voxel centers along h,k,l
-            subsampling, degree of oversampling relative to integer hkl
+            system, dictionary containing bins, space_group, nad subsampling information
+            laue, bool, if True, do not return Friedel-equivalents. default: True.
     Outputs: symm_idx, dict of np.arrays of symmetry-equivalent indices
              grid, np.array of hkl vectors
              multiplicities, np.array of multiplicities
     """
 
-    grid = np.array(list(itertools.product(bins['h'], bins['k'], bins['l'])))
-    extent = np.max([len(bins['h']), len(bins['k']), len(bins['l'])])
-    platform = np.max([np.max(bins['h']), np.max(bins['k']), np.max(bins['l'])])
+    grid = np.array(list(itertools.product(system['bins']['h'], system['bins']['k'], system['bins']['l'])))
 
-    # generate symmetry-equivalent indices
+    # valid for orthorhombic, cubic, hexagonal
+    if ((system['space_group'] >= 16) and (system['space_group'] <=142)) or ((system['space_group'] >= 195) and (system['space_group'] <=230)):
+        expand = False
+        bins = system['bins'].copy()
+
+    # for cases in which change of map dimensions is required
+    else:
+        expand = True
+
+        # valid for hexagonal, possibly trigonal?
+        if (system['space_group'] >= 168) and (system['space_group'] <=194):
+            mh, mk, ml = [np.max(system['bins'][key]) for key in ['h', 'k', 'l']]
+            lh, lk, ll = [len(system['bins'][key]) for key in ['h', 'k', 'l']]
+
+            bins = dict()
+            bins['h'] = np.linspace(-mh - mk, mh + mk, lh + lk - 1)
+            bins['k'] = np.linspace(-mh - mk, mh + mk, lh + lk - 1)
+            bins['l'] = system['bins']['l']
+
+            if len(bins['h']) > len(bins['l']):
+                exp_grid = np.array(list(itertools.product(bins['h'], bins['h'], bins['h'])))
+            else:
+                exp_grid = np.array(list(itertools.product(bins['l'], bins['l'], bins['l'])))
+
+        else:
+            print 'Input space group not currently supported'
+            return
+
+    platform = np.max([np.max(bins[key]) for key in bins.keys()])
+    extent = np.max([len(bins[key]) for key in bins.keys()])
+
+    # assume that second half of symm_ops dict corresponds to Friedel pairs
+    if laue is True:
+        laue_keys = len(symm_ops.keys())/2
+    else:
+        laue_keys = len(symm_ops.keys())
+
     symm_idx = dict()
-    for key in symm_ops.keys():
-        rot = np.inner(symm_ops[key], grid).T
-        rot_bump = subsampling*(rot + platform)
-        rot_bump = np.around(rot_bump).astype(int)
+    for key in range(laue_keys):
         
-        idx = np.ravel_multi_index(rot_bump.T, (extent, extent, extent))
-        symm_idx[key] = np.argsort(idx)
+        rot = np.inner(symm_ops[key], grid).T
+        rot_bump = system['subsampling']*(rot + platform)
+        rot_bump = np.around(rot_bump).astype(int)
 
-    # compute multiplicities
+        idx = np.ravel_multi_index(rot_bump.T, (extent, extent, extent))
+        if expand is False:
+            symm_idx[key] = np.argsort(idx)
+        else:
+            symm_idx[key] = idx
+            
+    # compute (ideal) multiplicities of each voxel
     combined = np.zeros((len(symm_idx.keys()), len(symm_idx[0])))
     for key in symm_idx.keys():
         combined[key] = symm_idx[key]
     multiplicities = np.array([len(np.unique(combined.T[i])) for i in range(combined.shape[1])])
 
-    return symm_idx, grid, multiplicities
+    if expand is False:
+        return symm_idx, grid, multiplicities
+    else:
+        return symm_idx, exp_grid, multiplicities
 
 
-def symmetrize(input_map, symm_idx, from_asu = False):
+def symmetrize(symm_idx, input_map, mult, expand = False, from_asu = False):
     """
-    Symmetrize input map according to the symmetry-equivalent indices encoded in symm_idx;
-    here it is assumed that the second half of arrays in symm_idx correspond to Friedels.
-    If from_asu is True, sum all symmetry-equivalent values; otherwise, assume input_map is
-    an unsymmetrized map of the unit cell, and average non-zero symmetry equivalent indices.
+    Symmetrize input map according to the symmetry-equivalent indices encoded in symm_idx.
+    Inputs: input_map, unsymmetrized map
+            symm_idx, dictionary of equivalent indices from generate_symmates
+            mult, array of (ideal) multiplicities of each voxel from generate_symmates
+            expand, bool, True for cases in which symmetrization expands the map dimensions
+            from_asu, bool, if True, sum rather than average symmetry-equivalent voxels
+    Outputs: symm_map, symmetrized map
+             map_shape, shape of symm_map (possibly expanded from original dimensions)
+             actual_mult, array of multiplicities adjusted for missing/empty voxels
     """
     
-    unsymm_map = input_map.copy().flatten()
-    symm_map = np.zeros(unsymm_map.shape)
-    nonzero_counts = len(symm_idx.keys())*np.ones(unsymm_map.shape)
+    # convert symm_idx from dict of arrays to 2d array
+    combined = np.zeros((len(symm_idx.keys()), len(symm_idx[0])))
+    for key in symm_idx.keys():
+        combined[key] = symm_idx[key]
+    combined = combined.astype(int)
 
+    # expand final map as needed by padding input_map with zeros
+    if expand is True:
+        extent = 2*np.max([dim for dim in input_map.shape]) - 1
+        cen = extent / 2
+        exp_map = np.zeros((extent, extent, extent))
+
+        hdim, kdim, ldim = input_map.shape
+        exp_map[cen-hdim/2:cen+hdim/2+1, cen-kdim/2:cen+kdim/2+1, cen-ldim/2:cen+ldim/2+1] = input_map
+        input_map = exp_map
+
+    # generate array of symm-equivalent values and compute actual multiplicities
+    vals = input_map.flatten()[combined]
+    n_nonzero = np.count_nonzero(vals.T, axis=1)
+    actual_mult = mult - mult.astype(float)/np.max(mult)*(np.max(mult) - n_nonzero)
+
+    # average values if not from ASU; otherwise, sum
     if from_asu is False:
-        for key in symm_idx.keys():
-            symm_map += unsymm_map[symm_idx[key]]
-            nonzero_counts[np.where(unsymm_map[symm_idx[key]]==0)[0]] -= 1
-        symm_map[nonzero_counts!=0] /= nonzero_counts[nonzero_counts!=0]
-
+        vals[vals==0] = np.nan
+        symm_map = np.nanmean(vals.T, axis=1)
+        symm_map[np.isnan(symm_map)] = 0
     else:
-        for key in symm_idx.keys()[:len(symm_idx.keys())/2]: 
-            symm_map += unsymm_map[symm_idx[key]]
+        symm_map = np.sum(vals.T, axis=1)
 
-    return symm_map
+    # populate symmetry-equivalent voxels not initially represented for expanded maps
+    if expand is True:
+        map_laue = np.zeros(input_map.shape).flatten()
+        for key in symm_idx.keys():
+            map_laue[symm_idx[key]] = symm_map
+        symm_map = map_laue
+
+    return symm_map, input_map.shape, actual_mult
 
 
 def generate_mesh(system):
@@ -285,3 +353,29 @@ def cc_by_shell(system, n_shells, map1, map2, mult):
         res_shell[i-1] = np.mean(res[reduce(np.intersect1d, (np.where(map1>0)[0], np.where(map2>0)[0], idx))])
 
     return res_shell, cc_shell
+
+
+def cc_friedels(system, input_map, n_shells):
+    """
+    Compute correlation coefficient between (h,k,l) and (-h,-k,-l), both overall and by
+    resolution shell. Currently treating all voxels as independent rather than weigthed
+    by multiplicity. Return Friedel-symmetrized map.
+    """
+
+    # computing CC, overall and by bin
+    Ipos, Ineg = input_map.copy().flatten(), input_map.copy().flatten()[::-1]
+    mult = np.ones(Ipos.shape)
+
+    cc_overall = np.corrcoef(Ipos[np.where((Ipos > 0) & (Ineg > 0))[0]], Ineg[np.where((Ipos > 0) & (Ineg > 0))[0]])[0,1]
+    res_shells, cc_shells = model_utils.cc_by_shell(system, n_shells, Ipos, Ineg, mult)
+
+    # symmetrizing Friedel pairs
+    vals = np.vstack((Ipos, Ineg))
+    vals[vals==0] = np.nan
+
+    fsymm = np.nanmean(vals.T, axis=1)
+    fsymm[np.isnan(fsymm)] = 0
+
+    return cc_overall, res_shells, cc_shells, fsymm
+
+
