@@ -4,15 +4,17 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.path as mplPath
 from matplotlib import gridspec
+from matplotlib.patches import Ellipse
 import numpy as np
 
 """ 
 Generate a systems dictionary from detector and refined geometry information 
 extracted from output of XDS. Input arguments should be absolute paths.
 
-Usage: python generate_system.py [xds directory] [map directory]
+Usage: python generate_system.py [xds directory] [map directory] [image type]
 
 Required files in input path: INTEGRATE.LP, INIT.LP, CORRECT.LP, XYCORR.LP 
+Currently supported image types: npy, h5, ccd
 Output files: system.pickle, checks/mask.png
 
 """
@@ -49,11 +51,8 @@ def extract_geometry(xds_path):
         # extract information about batch size
         system['batch_size'] = int([s for s in content if "NUMBER_OF_IMAGES_IN_CACHE" in s][0].split()[-1]) - 1
         img_range = [s for s in content if "DATA_RANGE" in s][0].split()
-        try:
-            assert int(img_range[-2]) == 1 # ensure that first image has suffix *1
-        except:
-            print "Please ensure that image suffixes are 1-indexed. "
-        system['n_batch'] = int(img_range[-1]) / system['batch_size']
+        system['start_image'] = int(img_range[-2])
+        #system['n_batch'] = int(img_range[-1]) / system['batch_size']
 
         # add image2batch mapping to circumvent problem of missing images
         bounds = [(int(s.split()[-3]), int(s.split()[-1])+1) for s in content if "PROCESSING OF IMAGES" in s]
@@ -62,6 +61,17 @@ def extract_geometry(xds_path):
             for image in range(bounds[nbatch][0], bounds[nbatch][1]):
                 system['img2batch'][image] = nbatch
 
+        # extract per image scale factor
+        idx = [i for i,s in enumerate(content) if 'IMAGE IER' in s]
+        system['n_batch'] = len(np.array(idx))
+        scales = list()
+        for start in idx:
+            start += 1
+            while content[start]!='\n':
+                scales.append(float(content[start].split()[2]))
+                start += 1
+        system['scales'] = np.array(scales)
+                
         # extract orientation (A) matrices and wavelength
         A_matrices = [s.strip('\n').split()[5:] for s in content if "COORDINATES OF UNIT CELL" in s]
         A_matrices = np.asarray(A_matrices, dtype=float)
@@ -83,16 +93,6 @@ def extract_geometry(xds_path):
         # extract rotation axis -- should use XDS_ASCII.HKL values intead?
         system['rot_axis'] = np.asarray([s.split()[1:] for s in content if "ROTATION_AXIS" in s][0], dtype=float)
         system['rot_phi'] = float([s.split()[1] for s in content if "OSCILLATION_RANGE" in s][0])
-
-        # extract per image scale factor
-        idx = [i for i,s in enumerate(content) if 'IMAGE IER' in s]
-        scales = list()
-        for start in idx:
-            start += 1
-            while content[start]!='\n':
-                scales.append(float(content[start].split()[2]))
-                start += 1
-        system['scales'] = np.array(scales)
 
         # extract estimated beam divergence and reflecting range e.s.d's (latter is mosaicity)
         idx = [i for i,s in enumerate(content) if 'SUGGESTED VALUES FOR INPUT PARAMETERS' in s][0]
@@ -137,8 +137,20 @@ def extract_corrections(xds_path):
                     if bbPath.contains_point((x, y)):
                         mask[y, x] = False
         
-        system['mask'] = mask
+        # mask beamstop if marked as an untrusted region by XDS
+        ebounds = [s.strip('\n').split()[1:5] for s in content if "UNTRUSTED_ELLIPSE" in s][0]
+        ebounds = np.array([float(eb) for eb in ebounds])
 
+        xwidth, ywidth = ebounds[1] - ebounds[0], ebounds[3] - ebounds[2]
+        center = np.array([int(xwidth/2.0 + ebounds[0]), int(ywidth/2.0 + ebounds[2])])
+        e = Ellipse(xy=center, width=xwidth, height=ywidth)
+        for xpoint in np.arange(ebounds[0]-5, ebounds[1]+5):
+            for ypoint in np.arange(ebounds[2]-5, ebounds[3]+5):
+                if e.contains_point((xpoint, ypoint)):
+                    mask[int(ypoint), int(xpoint)] = False
+
+        system['mask'] = mask
+        
     # extract parameters for parallax correction
     if 'parallax' in system['corrections']:
         
@@ -203,6 +215,7 @@ if __name__ == '__main__':
     system = dict()
     system['xds_path'] = sys.argv[1]
     system['map_path'] = sys.argv[2]
+    system['image_type'] = sys.argv[3]
 
     prompt_for_corrections()
     print "Now extracting information from XDS files..."
