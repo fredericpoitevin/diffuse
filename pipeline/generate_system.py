@@ -190,7 +190,7 @@ def plot_mask_and_scales(data_path):
 
     f = plt.figure(figsize=(8,6))
 
-    gs = gridspec.GridSpec(2, 1, height_ratios=[4,1], width_ratios=[1,1]) 
+    gs = gridspec.GridSpec(2, 1, height_ratios=[4,1], width_ratios=[1]) 
     ax0 = plt.subplot(gs[0])
     ax0.imshow(system['mask'], cmap='Blues')
 
