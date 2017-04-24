@@ -123,10 +123,16 @@ def generate_symmates(symm_ops, system, laue=True):
         combined[key] = symm_idx[key]
     multiplicities = np.array([len(np.unique(combined.T[i])) for i in range(combined.shape[1])])
 
+    # expand multiplicities to fit new map shape as needed
+    if expand is True:
+        mult_expand = np.zeros((extent*extent*extent))
+        for key in symm_idx.keys():
+            mult_expand[symm_idx[key]] = multiplicities
+
     if expand is False:
         return symm_idx, grid, multiplicities
     else:
-        return symm_idx, exp_grid, multiplicities
+        return symm_idx, exp_grid, multiplicities, mult_expand
 
 
 def symmetrize(symm_idx, input_map, mult, expand = False, from_asu = False):
@@ -161,7 +167,7 @@ def symmetrize(symm_idx, input_map, mult, expand = False, from_asu = False):
     # generate array of symm-equivalent values and compute actual multiplicities
     vals = input_map.flatten()[combined]
     n_nonzero = np.count_nonzero(vals.T, axis=1)
-    actual_mult = mult - mult.astype(float)/np.max(mult)*(np.max(mult) - n_nonzero)
+    #actual_mult = mult - mult.astype(float)/np.max(mult)*(np.max(mult) - n_nonzero)
 
     # average values if not from ASU; otherwise, sum
     if from_asu is False:
@@ -178,7 +184,10 @@ def symmetrize(symm_idx, input_map, mult, expand = False, from_asu = False):
             map_laue[symm_idx[key]] = symm_map
         symm_map = map_laue
 
-    return symm_map, input_map.shape, actual_mult
+        # return re-sized input map if expand is True for ease of calculating CC
+        return symm_map, input_map.shape, n_nonzero, input_map
+
+    return symm_map, input_map.shape, n_nonzero
 
 
 def generate_mesh(system):
@@ -327,13 +336,14 @@ def mweighted_cc(map1, map2, mult = None):
     return w_cov(map1_sel, map2_sel, mult_sel) / np.sqrt(w_cov(map1_sel, map1_sel, mult_sel) * w_cov(map2_sel, map2_sel, mult_sel))
 
 
-def cc_by_shell(system, n_shells, map1, map2, mult):
+def cc_by_shell(system, n_shells, map1, map2, mult, hkl_grid = None):
     """  
     Compute multiplicity-weighted correlation coefficient across n_shells resolution shells 
     (with spacing even in 1/d^3); return np.arrays of CC and median resolution of shells. 
     """
 
-    hkl_grid = np.array(list(itertools.product(system['bins']['h'], system['bins']['k'], system['bins']['l'])))
+    if hkl_grid is None:
+        hkl_grid = np.array(list(itertools.product(system['bins']['h'], system['bins']['k'], system['bins']['l'])))
     res = compute_resolution(system['space_group'], system['cell'], hkl_grid)
 
     inv_dcubed = 1.0/(res**3.0)
@@ -367,7 +377,7 @@ def cc_friedels(system, input_map, n_shells):
     mult = np.ones(Ipos.shape)
 
     cc_overall = np.corrcoef(Ipos[np.where((Ipos > 0) & (Ineg > 0))[0]], Ineg[np.where((Ipos > 0) & (Ineg > 0))[0]])[0,1]
-    res_shells, cc_shells = model_utils.cc_by_shell(system, n_shells, Ipos, Ineg, mult)
+    res_shells, cc_shells = cc_by_shell(system, n_shells, Ipos, Ineg, mult)
 
     # symmetrizing Friedel pairs
     vals = np.vstack((Ipos, Ineg))
