@@ -194,7 +194,7 @@ class Autocorrelation:
         to real space shape estimate (so factor of two has already been taken into account.
         """
         
-        A_inv = np.linalg.inv(np.diag(system['cell'][:3]))
+        A_inv = model_utils.deorth_matrix(system)
         trim, stride = dict(), dict()
         trim['h'], trim['k'], trim['l'] = htrim, ktrim, ltrim
         

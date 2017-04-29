@@ -7,48 +7,10 @@ from mdtraj import io
 
 """
 Scan over values of sigma and gamma to optimize parameters for LLM model.
-Usage: python wall_scan_exp.py system.pickle symm_ops transform_prefix experimental_path model save_prefix
+Usage: python wall_scan.py system.pickle point_group transform_map exp_map model save_path
 """
 
-def prompt_for_params():
-    """
-    Prompt for range across which to scan sigma and gamma values.
-    """
-
-    sigma_range = raw_input("sigma low, sigma high, sigma interval: ")
-    sigma_range = [float(i) for i in sigma_range.split()]
-    sigma_range = np.arange(sigma_range[0], sigma_range[1] + sigma_range[2], sigma_range[2])
-
-    gamma_range = raw_input("gamma low, gamma high, gamma interval: ")
-    gamma_range = [float(i) for i in gamma_range.split()]
-    gamma_range = np.arange(gamma_range[0], gamma_range[1] + gamma_range[2], gamma_range[2])
-
-    return sigma_range, gamma_range
-
-def process_transform(dir_prefix):
-    """
-    Load molecular transform, assuming that this was saved in two parts:
-    intensity for valid q and mask.
-    """
-
-    transform = np.load(dir_prefix + "_mask.npy")
-    transform[transform > 0] = np.load(dir_prefix + "_I.npy")
-
-    return transform
-
-def process_experimental(exp_path, system, symm_idx):
-    """
-    Symmetrize experimental map and subtract radial average.
-    """
-
-    exp_unsym = io.loadh(exp_path + "/final_maps.h5", "I")
-    exp = model_utils.symmetrize(exp_unsym, symm_idx, from_asu = False)
-    exp_aniso = model_utils.subtract_radavg(system, exp.copy(), 100)
-    
-    return exp_aniso
-
-
-def scan(system, transform, exp_aniso, sigma_range, gamma_range, model):
+def scan(system, pred_map, exp_map, sigma_range, gamma_range, model, mult):
     """
     Compute CC_aniso between experimental and transforms, across sigma and gamma ranges.
     """
@@ -63,34 +25,35 @@ def scan(system, transform, exp_aniso, sigma_range, gamma_range, model):
     for gamma in gamma_range:
         for sigma in sigma_range:
 
-            pred = wall_obj.scale(transform.copy(), qmags, map_shape, sigma, gamma, model)
-            pred_aniso = model_utils.subtract_radavg(system, pred, 100)
-            cc_aniso[counter] = model_utils.mweighted_cc(pred_aniso.copy(), exp_aniso.copy(), mult = mult)
+            pred = wall_obj.scale(pred_map.copy(), qmags, map_shape, sigma, gamma, model)
+            pred_aniso = model_utils.subtract_radavg(system, pred)
+            cc_aniso[counter] = model_utils.mweighted_cc(pred_aniso.copy(), exp_map.copy(), mult = mult)
 
             print "gamma: %.2f, sigma: %.2f, CC: %.4f" %(gamma, sigma, cc_aniso[counter])
             counter += 1
 
-    cc_aniso = cc_aniso.reshape(len(sigma_range), len(gamma_range))
+    cc_aniso = cc_aniso.reshape(len(gamma_range), len(sigma_range))
     return cc_aniso
 
 if __name__ == '__main__':
 
     start = time.time()
-    sigma_range, gamma_range = prompt_for_params()
-
+    #sigma_range, gamma_range = np.arange(0.05, 1.55, 0.05), np.arange(3.0, 93.0, 3.0)
+    sigma_range, gamma_range = np.arange(0.5, 0.61, 0.01), np.arange(12.0, 21.0)
+    
     # load system and generate symmetry information
-    system = pickle.load(open(sys.argv[1] + "/system.pickle", "rb"))
-    symm_ops = pickle.load(open(sys.argv[2], "rb"))['p222']
-    symm_idx, grid, mult = model_utils.generate_symmates(symm_ops, system['bins'], system['subsampling'])
+    system = pickle.load(open(sys.argv[1], "rb"))
+    symm_ops = pickle.load(open("reference/symm_ops.pickle", "rb"))[sys.argv[2]]
+    symm_idx, grid, mult = model_utils.generate_symmates(symm_ops, system, laue=False)
 
     # load molecular transform and experimental maps
-    transform = process_transform(sys.argv[3])
-    exp_aniso = process_experimental(sys.argv[1], system, symm_idx)
+    transform = np.load(sys.argv[3])
+    experimental = np.load(sys.argv[4])
 
     # scan across sigma and gamma ranges; save mesh and cc_aniso to same .h5 file
-    cc_aniso = scan(system, transform, exp_aniso, sigma_range, gamma_range, sys.argv[4])
-    io.saveh(sys.argv[5] + "/%s.h5" %(sys.argv[4]), sigmas = sigma_range)
-    io.saveh(sys.argv[5] + "/%s.h5" %(sys.argv[4]), gammas = gamma_range)
-    io.saveh(sys.argv[5] + "/%s.h5" %(sys.argv[4]), cc = cc_aniso)
+    cc_aniso = scan(system, transform, experimental, sigma_range, gamma_range, sys.argv[5], mult)
+    io.saveh(sys.argv[6] + "/%s.h5" %(sys.argv[5]), sigmas = sigma_range)
+    io.saveh(sys.argv[6] + "/%s.h5" %(sys.argv[5]), gammas = gamma_range)
+    io.saveh(sys.argv[6] + "/%s.h5" %(sys.argv[5]), cc = cc_aniso)
 
     print "elapsed time is %.3f" %((time.time() - start)/60.0)

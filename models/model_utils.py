@@ -189,18 +189,24 @@ def symmetrize(symm_idx, input_map, expand = False, from_asu = False):
     return symm_map, input_map.shape, n_nonzero
 
 
-def generate_mesh(system):
+def deorth_matrix(system):
     """
-    Generate qvector mesh for use with plt.pcolormesh from A matrix and bins.
+    Compute deorthogonalization matrix from cell constants. Equation for this matrix, M, here:
+    http://www.ruppweb.org/Xray/tutorial/Coordinate%20system%20transformation.htm.
     """
-    A_inv = np.linalg.inv(np.diag(system['cell'][:3]))
 
-    mesh = dict()
-    mesh['projX'] = np.meshgrid(2*np.pi*np.dot(A_inv[2][2], system['bins']['l']), 2*np.pi*np.dot(A_inv[1][1], system['bins']['k']))
-    mesh['projY'] = np.meshgrid(2*np.pi*np.dot(A_inv[2][2], system['bins']['l']), 2*np.pi*np.dot(A_inv[0][0], system['bins']['h']))
-    mesh['projZ'] = np.meshgrid(2*np.pi*np.dot(A_inv[1][1], system['bins']['k']), 2*np.pi*np.dot(A_inv[0][0], system['bins']['h']))
+    a, b, c, alpha, beta, gamma = system['cell']
+    alpha, beta, gamma = np.deg2rad(alpha), np.deg2rad(beta), np.deg2rad(gamma)
 
-    return mesh
+    V = a*b*c*np.sqrt(1.0 - np.square(np.cos(alpha)) - np.square(np.cos(beta)) \
+                      - np.square(np.cos(gamma)) + 2.0*np.cos(alpha)*np.cos(beta)*np.cos(gamma))
+    M = np.array([[1.0/a, -np.cos(gamma)/(a*np.sin(gamma)), \
+                   ((b*c*np.cos(gamma)*(np.cos(alpha) - np.cos(beta)*np.cos(gamma)))/np.sin(gamma) \
+                    - b*c*np.cos(beta)*np.sin(gamma))*(1.0/V)],
+                  [0, 1.0/(b*np.sin(gamma)), -1.0*a*c*(np.cos(alpha) - np.cos(beta)*np.cos(gamma))/(V*np.sin(gamma))],
+                  [0, 0, a*b*np.sin(gamma)/V]])
+
+    return M
 
 
 def generate_extents(system):
@@ -208,9 +214,9 @@ def generate_extents(system):
     Generate dictionary of tuples to be used for plotting with plt.imshow.
     """
     
-    A_inv = np.linalg.inv(np.diag(system['cell'][:3]))
+    A_inv = deorth_matrix(system)
     hkl_grid = np.array(list(itertools.product(system['bins']['h'], system['bins']['k'], system['bins']['l'])))
-    q_vecs = 2*np.pi*np.inner(A_inv, hkl_grid).T
+    q_vecs = 2*np.pi*np.inner(A_inv.T, hkl_grid).T
 
     max_h, max_k, max_l = [np.max(q_vecs[:,i]) for i in range(3)]
     extent = dict()
@@ -227,10 +233,10 @@ def compute_qmags(system):
     in the system.pickle file.
     """
     
-    A_inv = np.linalg.inv(np.diag(system['cell'][:3]))
+    A_inv = deorth_matrix(system)
     hkl_grid = np.array(list(itertools.product(system['bins']['h'], system['bins']['k'], system['bins']['l'])))
     
-    q_vecs = 2*np.pi*np.inner(A_inv, hkl_grid).T 
+    q_vecs = 2*np.pi*np.inner(A_inv.T, hkl_grid).T 
     return np.linalg.norm(q_vecs, axis=1)
 
 
