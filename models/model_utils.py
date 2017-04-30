@@ -107,7 +107,7 @@ def symmetrize(system, symm_ops, input_map, laue = True, from_asu = True):
         num_keys = len(symm_ops.keys())/2
 
     # reduce grid to voxels that fall within map resolution
-    res = model_utils.compute_resolution(system['space_group'], system['cell'], grid)
+    res = compute_resolution(system['space_group'], system['cell'], grid)
     r_grid = grid[np.where(res > system['d'])[0]]
 
     # generate symmetry mates for all voxels within map resolution
