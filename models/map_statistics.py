@@ -83,18 +83,18 @@ if __name__ == '__main__':
         cc_stats[key]['laue'] = compute_ccs(system, maps[key].copy(), map_laue, n_bins)
     
     print "saving map statistics"
-    with open(output_path + "/map_stats.pickle", "wb") as handle:
+    with open(output_path + "/symm_statistics.pickle", "wb") as handle:
         pickle.dump(cc_stats, handle)
 
     # generate Friedel and Laue symmetrized map and its anistropic counterpart
     print "generating Laue- and Friedel-symmetrized maps"
-    fl_symm, mult = model_utils.symmetrize(system, symm_ops, maps['full'].copy(), laue = False, from_asu = False)
+    fl_symm, fl_mult = model_utils.symmetrize(system, symm_ops, maps['full'].copy(), laue = False, from_asu = False)
     fl_symm_aniso = model_utils.subtract_radavg(system, fl_symm.copy())
-    maps['symm'], maps['symm_aniso'] = fl_symm, fl_symm_aniso
+    maps['symm'], maps['symm_aniso'], maps['mult'] = fl_symm, fl_symm_aniso, fl_mult
 
     print "saving symmetrized maps"
     for key in maps.keys():
-        io.saveh(output_path + "processed_maps.h5", **maps)
+        io.saveh(output_path + "/processed_maps.h5", **maps)
 
     print "elapsed time is %.3f" %((time.time() - start)/60.0)
 

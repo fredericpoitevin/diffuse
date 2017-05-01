@@ -271,8 +271,12 @@ def subtract_radavg(system, input_map, bin_width = None, medians = False):
         xm = np.array([np.median(x[np.where(dx == i)]) for i in range(np.min(dx), np.max(dx)+1)])
         ym = np.array([np.median(y[np.where(dx == i)]) for i in range(np.min(dx), np.max(dx)+1)])
 
+    # dealing with case where some bins are empty
+    xm_real = np.delete(xm, np.where((np.isnan(xm)) | (np.isnan(ym)))[0])
+    ym_real = np.delete(ym, np.where((np.isnan(xm)) | (np.isnan(ym)))[0])
+
     # subtract radial average
-    masked_sub = y - np.interp(x, xm, ym)
+    masked_sub = y - np.interp(x, xm_real, ym_real)
     aniso_map = np.zeros(hkl_res.shape)
     aniso_map[input_map.flatten()>0] = masked_sub - np.min(masked_sub) + np.min(y)
     

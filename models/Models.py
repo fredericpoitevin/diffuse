@@ -148,13 +148,13 @@ class Ensemble:
     Guinier's equation: I(q) = <|F_n(q)|^2> - |<F_n(q)^2|>.
     """
 
-    def compute(self, system, ensemble, probs, symm_idx = None, sigma = None):
+    def compute(self, system, ensemble, probs, symm_ops = None, sigma = None):
         """
         Calculate I(q) using Guinier's equation.
         Inputs: system, dictionary specifying map; used for calculating qmags
                 ensemble, dictionary of structure factors for each state
                 probs, probabilities of each state in same order as ensemble's keys
-                symm_idx, if not None, symmetrize according to symm_idx dictionary
+                symm_ops, if not None, symmetrize according to symmetry operations
                 sigma, if not None, scale with a global isotropic B factor
         """
         
@@ -168,8 +168,8 @@ class Ensemble:
 
         I_diffuse = (sum_fc_sq - np.square(np.abs(sum_fc))).real # NB: complex part is zero, but results in warning
 
-        if symm_idx is not None:
-            I_diffuse = model_utils.symmetrize(I_diffuse, symm_idx, from_asu = True)
+        if symm_ops is not None:
+            I_diffuse, l_mult = model_utils.symmetrize(system, symm_ops, I_diffuse, laue = True, from_asu = True)
 
         if sigma is not None:
             qmags = model_utils.compute_qmags(system)
