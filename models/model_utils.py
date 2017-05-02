@@ -361,3 +361,25 @@ def cc_friedels(system, input_map, n_shells):
     return cc_overall, res_shells, cc_shells, fsymm
 
 
+def optimize_plot(image, target):
+    
+    """
+    Apply scaling factor and platform constant to put image on same scale as target.
+    Useful for plotting with the same vmax.
+    """
+
+    def error(args):
+        m, b = args
+        scaled = m*valid_img + b
+        residuals = scaled - valid_tar
+        return residuals
+
+    valid_img, valid_tar = image[(image>0)&(target>0)], target[(image>0)&(target>0)]
+    x0 = (np.mean(valid_tar)/np.mean(valid_img), 0.0)
+    res = scipy.optimize.leastsq(error, x0)
+    m_f, b_f = res[0]
+    
+    scaled_img = np.zeros_like(image)
+    scaled_img[image>0] = m_f*image[image>0] + b_f
+
+    return scaled_img
