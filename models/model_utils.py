@@ -3,6 +3,7 @@ from itertools import islice
 import cPickle as pickle
 import numpy as np
 import mdtraj as md
+import scipy.interpolate
 
 """ Miscellaneous functions useful for analyzing diffuse maps. """
 
@@ -383,3 +384,36 @@ def optimize_plot(image, target):
     scaled_img[image>0] = m_f*image[image>0] + b_f
 
     return scaled_img
+
+
+def interpolate_map(system, input_map):
+    """
+    Recover missing regions (indicated by values <= 0) of a map within the map's 
+    resolution cut-off by nearest interpolation. 
+    """
+
+    # reshape map to 3d shape
+    map_shape = (len(system['bins']['h']), len(system['bins']['k']), len(system['bins']['l']))
+    data = input_map.copy().reshape(map_shape)
+
+    # generate boolean mask for missing voxels
+    mask = np.zeros(map_shape)
+    mask[data<=0] = 1
+    nmask = ~mask.copy().astype(bool)
+
+    # generate grid in q-space corresponding to max voxels
+    A_inv = deorth_matrix(system)
+    hkl_grid = np.array(list(itertools.product(system['bins']['h'], system['bins']['k'], system['bins']['l'])))
+    q_vecs = 2*np.pi*np.inner(A_inv.T, hkl_grid).T
+    xx, yy, zz = [q_vecs[:,i].reshape(map_shape) for i in range(3)]
+
+    xym = np.vstack( (np.ravel(xx[nmask]), np.ravel(yy[nmask]), np.ravel(zz[nmask])) ).T
+    data0 = np.ravel( data[nmask] )
+
+    # interpolate and set values beyond map's resolution cut-off to zero
+    interp0 = scipy.interpolate.NearestNDInterpolator( xym, data0 )    
+    interp_map = interp0(np.ravel(xx), np.ravel(yy), np.ravel(zz)).reshape( xx.shape )
+    res = compute_resolution(system['space_group'], system['cell'], hkl_grid).reshape(map_shape)
+    interp_map[res < system['d']] = 0
+
+    return interp_map
