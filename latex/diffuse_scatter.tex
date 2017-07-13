@@ -11,6 +11,7 @@
 \usepackage{fancyhdr}
 \usepackage{tipa}
 \usepackage{setspace}
+\usepackage{parskip}
 \newcommand{\lambdabar}{\mbox{\textipa{\textcrlambda}}}
 
 %\usepackage[numbers,sort&compress]{natbib}
@@ -21,6 +22,10 @@
 \pagestyle{plain}
 \begin{document}
 
+
+\section{Diffuse Scatter in the Gaussian Approximation}
+
+\subsection{Atomic deviations from their mean positions results in diffuse scattering}
 
 Consider the scattering of x-rays from a crystal in the far-field. A general form of the scattered intensity, $I$, at some wavevector $\mathbf{q}$ in reciprocal space is:
 \begin{equation}
@@ -174,10 +179,10 @@ e^{\mathbf{q}^T V_{ij} \mathbf{q}} - 1
 There are two notable features of the diffuse scattering. First, lacking the lattice transform $\left| S( \mathbf{q} ) \right|^2$ it is \textit{not} localized in reciprocal space. Second, it is non-trivial only if there is correlated displacements between the atoms $V_{ij} \neq \mathbf{0}$.
 
 % ---------------------------------------------------
-\section{Diffuse Scatter in Special Cases}
+\subsection{Diffuse Scatter in Special Cases}
 
 %%%
-\subsection{No Cross-Correlation}
+\subsubsection{No Cross-Correlation}
 In the case $V_{ij}$ is $\mathbf{0}$ for all $\{i, j\}$, then all $i \neq j$ terms vanish, and
 \[
 I_\mathrm{diffuse} (\mathbf{q}) = N \sum_{i} f_i^2
@@ -189,7 +194,7 @@ I_\mathrm{diffuse} (\mathbf{q}) = N \sum_{i} f_i^2
 just a relatively unstructured background remains, proportional to the anisotropic B-factors. Note anisotropy is still possible if the individual atomic displacements are highly anisotropic. The diffuse scatter will, however, lack the ``speckle'' features that normally distinguish it from background scattering.
 
 %%%
-\subsection{Correlated Bodies}
+\subsubsection{Correlated Bodies}
 In the case that an entire set of atoms moves as a unit, the covariance between all pairs of atoms $V_{ij}$ can be written as a scalar $\sigma^2$, and the diffuse scatter becomes
 \begin{align}
 I_\mathrm{diffuse} (\mathbf{q}) =&
@@ -203,7 +208,7 @@ The diffuse scatter in this case is a scaled version of the molecular transform 
 
 
 %%%
-\subsection{Isotropic Real Space Correlation Length}
+\subsubsection{Isotropic Real Space Correlation Length}
 Here, we reproduce the isotropic correlation model of Clarage. Our approach is equivalent but more direct, employing the expression for the scattered intensity rather than reasoning about the Patterson. Clarage makes the following assumptions about the atomic correlations:
 %
 \begin{enumerate}
@@ -225,7 +230,7 @@ e^{- q^2 \sigma^2}
 e^{q^2 \sigma^2 \Gamma(\mathbf{r}_{ij})} - 1
 \right]
 \]
-Clarage suggests that so long as $q^2 \sigma^2 \Gamma(\mathbf{r}_{ij})$ is small, we may Taylor expand the exponential $\exp \{ q^2 \sigma^2 \Gamma(\mathbf{r}_{ij}) \} \approx 1 - q^2 \sigma^2 \Gamma(\mathbf{r}_{ij})$ and further simplify
+Clarage suggests that so long as $q^2 \sigma^2 \Gamma(\mathbf{r}_{ij})$ is small, we may Taylor expand the exponential $\exp \{ q^2 \sigma^2 \Gamma(\mathbf{r}_{ij}) \} \approx 1 + q^2 \sigma^2 \Gamma(\mathbf{r}_{ij})$ and further simplify
 \[
 I_\mathrm{diffuse} (\mathbf{q}) = q^2 \sigma^2 \, e^{- q^2 \sigma^2} N 
 \sum\limits_{i,j} f_i f_j e^{-i \mathbf{q} \cdot \mathbf{r}_{ij}} \Gamma(\mathbf{r}_{ij})
@@ -251,16 +256,48 @@ let $\tilde{\Gamma} (\mathbf{q}) = \int \Gamma(\mathbf{r}_{ij})   e^{i \mathbf{q
 %
 \int \sum_{i,j} f_i f_j \delta( \mathbf{r} - \mathbf{r}_{ij}) e^{i \mathbf{q} \cdot \mathbf{r}}  \, d \mathbf{r} =
 %
-\sum_{i,j} f_i f_j e^{i \mathbf{q} \cdot \mathbf{r_{ij}}} = | F(\mathbf{q}) |^2
+\sum_{i,j} f_i f_j e^{i \mathbf{q} \cdot \mathbf{r_{ij}}} = I_0
 \]
-is the scattered intensity of a (fully ordered) single unit cell (Clarage calls this $I_0$). In summary, we may write the diffuse scatter as a convolution between this intensity function and the Fourier transform of the correlation kernel $\Gamma$,
+is the scattered intensity of the coherently diffracting volume. This could either be a number of asymmetric units or the entire crystal (note: poorly presented, need to clean this up). In summary, we may write the diffuse scatter as a convolution between this intensity function and the Fourier transform of the correlation kernel $\Gamma$,
 \begin{equation}
 I_\mathrm{diffuse} (\mathbf{q}) = q^2 \sigma^2 \, e^{- q^2 \sigma^2} \frac{N}{16 \pi^6} 
-\left[ | F(\mathbf{q}) |^2 \ast \tilde{\Gamma}(\mathbf{q}) \right]
+\left[ I_0 \ast \tilde{\Gamma}(\mathbf{q}) \right]
 \end{equation}
 
 
-\section{Appendix A1}
+\subsection{Inference of the covariance matrix}
+
+Let us assume that we have many measurements of $I_\mathrm{diffuse}(\mathbf{q})$ and wish to infer a model of the form just discussed. To do this, we may minimize the least squares loss function
+\[
+\mathcal{O} ( \{ V_{ij} \} )= \sum_{\{\mathbf{q}\}} \left| I_\mathrm{diff}^\mathrm{obs} (\mathbf{q}) 
+- I_\mathrm{diff}^\mathrm{calc} (\mathbf{q}; V) \right|^2
+\]
+where ``obs'' and ``calc'' indicate the observed and modeled values respectively. Our task is to vary $ V = \{ V_{ij} \}$ to minimize $\mathcal{O}$. We will assume that each $V_{ij}$ is \emph{isotropic} and therefore can be represented by a scalar. The extension to the anisotropic case is straightforward, but as we will see, the number of free parameters in the isotropic model will already be quite large.
+
+Let $A_{ij} (\mathbf{q}) \equiv f_{i} f_{j} \exp \{ \, i \mathbf{q} \cdot (\mathbf{r}_{i}- \mathbf{r}_{j}) - \frac{1}{2} q^2(V_{ii} + V_{jj} ) \, \}$, Then we may write
+\[
+I_\mathrm{esb}^\mathrm{calc} (\mathbf{q}; V) = \sum_{ij} A_{ij} (\mathbf{q}) \, 
+\left[ e^{q^2 V_{ij}} - 1 \right]
+\]
+and the derivatives of the objective function take on a simple form. Employing the chain rule we can write
+\begin{align}
+\frac{\partial \mathcal{O}} {\partial V_{ij}} =& 
+\sum_{\{\mathbf{q}\}} 2 
+\left[ I_\mathrm{diff}^\mathrm{obs} (\mathbf{q}) - 
+I_\mathrm{diff}^\mathrm{calc} (\mathbf{q}; V) \right]
+\frac{\partial} {\partial V_{ij}} I_\mathrm{diff}^\mathrm{calc} (\mathbf{q}; V) \\
+%
+=& 
+\sum_{\{\mathbf{q}\}} 2 
+\left[ I_\mathrm{diff}^\mathrm{obs} (\mathbf{q}) - 
+I_\mathrm{diff}^\mathrm{calc} (\mathbf{q}; V) \right] \cdot A_{ij}(\mathbf{q}) q^2 e^{q^2 V_{ij}}
+\end{align}
+No closed form for the minimum exists, but one can see this numerical derivative prescribes a straightforward descent algorithm with step size $I_\mathrm{diff}^\mathrm{obs} (\mathbf{q}) - I_\mathrm{diff}^\mathrm{calc} (\mathbf{q}; V)$ in direction $A_{ij}(\mathbf{q}) q^2 e^{q^2 V_{ij}}$ for each $V_{ij}$. The derivative is zero and the minimum is reached when $I_\mathrm{diff}^\mathrm{obs} (\mathbf{q}) = I_\mathrm{diff}^\mathrm{calc} (\mathbf{q}; V)$.
+
+Computing second derivatives, 
+
+
+\subsection{Appendix A1}
 We prove
 \begin{equation}
 \iint p( \boldsymbol{\delta}_{c_i},  \boldsymbol{\delta}_{d_j} )
@@ -312,6 +349,40 @@ simply using the definition $V_{ab} = \langle \boldsymbol{\delta}_{a}^T\boldsymb
 = \int p(\mathbf{x} ) e^{- i \mathbf{q}_2 \cdot \mathbf{x} } \, d \mathbf{x}
 \]
 employing (\ref{eq:mvnlemma}) and simplifying completes the proof.
+
+%
+% ------------------------------------------------------------------
+%
+\section{Map Construction \& Volumetric Corrections}
+
+Our goal is to take a set of pixel intensities from a rotation series and construct an accurate reciprocal space map.  In order to do this, we need to account for the fact that each pixel integrates a different shaped volume of reciprocal space.
+
+For a pixel $i$ exposed to the scattering from a continuously rotated crystal, we may write measured intensity (up to a constant, arbitrary factor) at that pixel as 
+\begin{equation} 
+I_i = \frac{1}{\ell_i} \int_{\Omega_i} I(\mathbf{q}) \, d\mathbf{q}
+\label{eq:pixel_intensity}
+\end{equation}
+where $I(\mathbf{q})$ is the continuous scattered intensity, $\ell_i$ is the arc length of the trajectory the pixel transverses due to crystal rotation, and $\Omega_i$ is the 3D volume of reciprocal space the pixel integrates. We divide by the arc length $\ell_i$ because during rotation, for an Ewald sphere of fixed width, the diffraction is ``spread'' along the rotation direction (NEED a much better way to explain this -- currently my english thinking is murky).
+
+Further, let $V_i$ be the volume of the region $\Omega_i$. By Pappus' second theorem, $V_i = A \ell_i$, where $A$ is the pixel's cross-sectional area in 3D reciprocal space. We assume that a solid angle correction has been applied to all the images; in which case, this value will be identical for every pixel.
+
+Let $M_\alpha$ be the estimated intensity for map voxel $\alpha$. If we construct the map by averaging pixel intensities,
+\[
+M_\alpha = \frac{1}{n_\alpha} \sum_{i \in S_\alpha} I_i
+\]
+where $S_\alpha$ is the set of all pixels $i$ mapped to voxel $\alpha$, and $n_\alpha$ is just the cardinality of $S_\alpha$. Let $\bar{I_i}$ be the average value of $I(q)$ across pixel $i$. Then we may write
+
+\begin{align*}
+M_\alpha &= \frac{1}{n_\alpha} \sum_i  \frac{1}{\ell_i} \int_{\Omega_i} I(\mathbf{q}) \, d\mathbf{q} \\
+&= \frac{1}{n_\alpha} \sum_i \frac{ \bar{I_i} V_i }{ \ell_i } \\
+&= A \langle \bar{I_i} \rangle_\alpha
+\end{align*}
+
+Note $\langle \bar{I_i} \rangle_\alpha$ is the average value of $ I(\mathbf{q}) $ across the volume of all pixels that we have assigned to a particular voxel. This is exactly what we want. We get it as long as (1) we average pixels in a voxel, (2) apply a solid angle correction to the images, and (3) equation (\ref{eq:pixel_intensity}) is correct. Note we have not needed to resort to any arguments about where the pixels are in reciprocal space.
+
+Note there is some inherent error in this method -- where the volume integrated by pixels falls outside the map voxel it is assigned to (as will happen to pixels on the boundaries of voxels), small errors will be introduced. This can be checked by looking at symmetry-equivalent voxels and ensuring their values differ only by small amounts.
+
+\textbf{Comment:} One might wonder why we use a Lorentz correction when integrating Bragg data. Bragg data are processed in an entirely different way, summing pixels rather than generating a true reciprocal map. In that case, the volume of reciprocal space included in each integrated Bragg peak is different, and therefore it may be simpler to apply a Lorentz correction to account for the time that peak spends in the diffraction condition.
 
 \bibliography{diffuse_scatter}
 
