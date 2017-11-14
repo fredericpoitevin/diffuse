@@ -14,12 +14,14 @@ Inputs: mode: 'generate', 'compile', or 'apply' which determines what script per
         nbatch, batch number to process, must fall within batch range (specific to 'generate' mode)
         bragg_sigma, determines threshold for excluding pixels spanned by Bragg peaks
         outlier_sigma, determines threshold above radial average for excluding high-intensity pixels
+        s_mask, optional numpy array for untrusted regions (e.g. cryo-loop)
+        img_num_low, img_num_high, image range across which to apply the special mask s_mask
 Hardcoded but tunable parameters: length, determines size of bounding box for Bragg Masking. Default is 30 pixels.
                                   n_bins, number of bins for calculating radial intensity profile. Default is 100.
 
 Usage: python mask_bragg.py generate [system.pickle] [sigma_n] [sys_absences] [nbatch], to process a single batch
        python mask_bragg.py compile [system.pickle], to compile all batches
-       python mask_bragg.py apply [system.pickle] [bragg_sigma] [outlier_sigma], to apply masks and remove outliers
+       python mask_bragg.py apply [system.pickle] [bragg_sigma] [outlier_sigma] [s_mask] [img_num_low] [img_num_high], to apply masks and remove outliers
 
 """
 
@@ -56,8 +58,6 @@ def apply_masks(system, output_dir, bragg_sigma, outlier_sigma, length, n_bins):
     mask_path = system['map_path'] + "combined_braggmasks.h5"
     file_glob = glob.glob(system['map_path'] + "indexed/*.npy")
     filelist = sorted(file_glob, key = lambda name: int(name.split('_')[-1].split('.')[0]))
-    if len(filelist) != int(system['n_batch']*system['batch_size']):
-        print "Warning: discrepancy between predicted and found number of images."
 
     # select a random file per batch to additionally save mask file for debugging purposes
     keys, vals = system['img2batch'].keys(), system['img2batch'].values()
@@ -77,11 +77,7 @@ def apply_masks(system, output_dir, bragg_sigma, outlier_sigma, length, n_bins):
 
         # mask Bragg peaks and remove outliers
         maskedI = bm_obj.ms_threshold(bragg_sigma)
-        pI, s_med, n_outliers = bm_obj.remove_outliers(outlier_sigma, n_bins, maskedI.copy())
-
-        npix_removed = np.sum(n_outliers[np.where(1.0/s_med > system['d'])[0]])
-        fpix_removed = 100.0*npix_removed/float(system['shape'][0]*system['shape'][1])
-        print "%i (%.3f percent) pixels in map resolution range removed as outliers" % (int(npix_removed), fpix_removed)
+        pI = bm_obj.remove_outliers(outlier_sigma, n_bins, maskedI.copy())
         
         # save processed image and a few masked images if a 'checks' directory exists in map_path
         np.save(output_dir + "pI_%s.npy" %img_num, pI)
@@ -98,11 +94,11 @@ if __name__ == '__main__':
     system = pickle.load(open(sys.argv[2]))
 
     if sys.argv[1] == 'generate':
-        print "generating bragg masks, processing batch %s" %sys.argv[5]
-        sigma_n, nbatch = float(sys.argv[3]), int(sys.argv[5])
+        print "generating bragg masks, processing batch %s" %sys.argv[6]
+        sigma_nd, sigma_nm, nbatch = float(sys.argv[3]), float(sys.argv[4]), int(sys.argv[6])
         assert (nbatch >= 0) and (nbatch < system['n_batch'])
-        bm_obj = mb.PredictBragg(system, nbatch, sys_absences = sys.argv[4])
-        bm_obj.pred_pixels(sigma_n)
+        bm_obj = mb.PredictBragg(system, nbatch, sys_absences = sys.argv[5])
+        bm_obj.pred_pixels(sigma_nd, sigma_nm)
 
     if sys.argv[1] == 'compile':
         print "compiling bragg masks"
@@ -112,6 +108,10 @@ if __name__ == '__main__':
         print "applying bragg masks"
 
         bragg_sigma, outlier_sigma = float(sys.argv[3]), float(sys.argv[4])
+        if len(sys.argv) > 5:
+            system['s_mask'] = np.load(sys.argv[5])
+            system['s_mask_img'] = range(int(sys.argv[6]), int(sys.argv[7])+1)
+        
         length, n_bins = 30, 100
         
         output_dir = system['map_path'] + "maskedI/"

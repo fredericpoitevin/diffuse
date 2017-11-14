@@ -52,6 +52,7 @@ def extract_geometry(xds_path):
         system['batch_size'] = int([s for s in content if "NUMBER_OF_IMAGES_IN_CACHE" in s][0].split()[-1]) - 1
         img_range = [s for s in content if "DATA_RANGE" in s][0].split()
         system['start_image'] = int(img_range[-2])
+        system['start_phi'] = float([s for s in content if "STARTING_ANGLE" in s][0].split()[1])
         #system['n_batch'] = int(img_range[-1]) / system['batch_size']
 
         # add image2batch mapping to circumvent problem of missing images
@@ -190,7 +191,7 @@ def plot_mask_and_scales(data_path):
 
     f = plt.figure(figsize=(8,6))
 
-    gs = gridspec.GridSpec(2, 1, height_ratios=[4,1], width_ratios=[1]) 
+    gs = gridspec.GridSpec(2, 1, height_ratios=[4,1], width_ratios=[1,1]) 
     ax0 = plt.subplot(gs[0])
     ax0.imshow(system['mask'], cmap='Blues')
 

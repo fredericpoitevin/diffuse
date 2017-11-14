@@ -31,7 +31,6 @@ def compile_shell(system, I_dir, num_shells, n_shell):
     # get intensity file list
     file_glob = glob.glob(system['map_path'] + I_dir + "/*.npy")
     filelist = sorted(file_glob, key = lambda name: int(name.split('_')[-1].split('.')[0]))
-    assert len(filelist) == int(system['n_batch']*system['batch_size'])
 
     # initialize map constructor object
     mc_obj = MapConstructor.GenerateMap(system, num_shells)

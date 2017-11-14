@@ -112,7 +112,7 @@ class GenerateBackground:
 
         proj_data = np.dot(np.real(sort_evecs.transpose()), msA)
 
-        return sort_evals, sort_evecs, proj_data
+        return np.real(sort_evals), np.real(sort_evecs), proj_data
 
     def pca_params(self, rI_input, neig, evals, evecs, proj_data):
         """ 
@@ -160,10 +160,10 @@ class ApplyBackground:
         used to compute crystal setting matrix.
         """
         
-        if num == -1:
-            A_inv = np.linalg.inv(np.diag(self.system['cell'][:3]))
-        else:
-            A_inv = np.linalg.inv(self.system['A_batch'][(num - 1)/self.system['batch_size']])
+        #if num == -1:
+        #    A_inv = np.linalg.inv(np.diag(self.system['cell'][:3]))
+        #else:
+        A_inv = np.linalg.inv(self.system['A_batch'][self.system['img2batch'][num]])
 
         s_vecs = np.inner(A_inv, indexed[:,:3]).T
 
@@ -187,7 +187,7 @@ class ApplyBackground:
         """
 
         assert self.params.has_key('paratone')
-        img_params = self.params['paratone'][num - 1]
+        img_params = self.params['paratone'][num - self.system['start_image']]
 
         if img_params.shape[0] == 2:
             p_offset, p_scale = img_params[0], img_params[1]
@@ -203,5 +203,5 @@ class ApplyBackground:
         
         assert self.params.has_key('pca_bgd')
 
-        pca_S, pca_Ibgd = self.params['pca_bgd'][0], self.params['pca_bgd'][num]
+        pca_S, pca_Ibgd = self.params['pca_bgd'][0], self.params['pca_bgd'][num - self.system['start_image'] + 1]
         return np.interp(s_mags, pca_S, pca_Ibgd)

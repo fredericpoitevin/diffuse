@@ -8,11 +8,13 @@ import cPickle as pickle
 import numpy as np
 
 """
-Wrapper for the EliminateParasitic class. Script has two modes: 1. 'profile', 
-which generates radial intensity profiles for the complete dataset, and 2. 
-'remove', which generates and applies specified method of background subtraction.
+Wrapper for the EliminateParasitic class. Script has two modes: 1. 'profile', which 
+generates radial intensity profiles for the complete dataset, 2. 'profile_ind', which 
+generates and saves individual radial intensity profiles (useful for large datasets),
+and 3.'remove', which generates and applies specified method of background subtraction.
 
 Usage: python eliminate_parasitic.py profile system.pickle [intensity directory] [n_bins]
+       python eliminate_parasitic.py profile_ind system.pickle [intensity directory] [n_bins] 
        python eliminate_parasitic.py remove system.pickle [intensity directory] [rI_mtx]
 """
 
@@ -61,6 +63,7 @@ def remove_background(dir_pI, output_dir, params):
             print "loading from %s" % dir_pI ## for testing purposes
             imgI = np.load(filelist[i])
 
+        invalid_idx = np.where(imgI <= 0)[0]
         s_mags = ab.compute_smags(indexed, int(num))
         for key in params.keys():
             if key == 'water':
@@ -73,6 +76,7 @@ def remove_background(dir_pI, output_dir, params):
                 print "removing pca bgd" ## for testing purposes 
                 imgI -= ab.interp_pca(s_mags, int(num))
 
+        imgI[invalid_idx] = 0
         np.save(output_dir + "pI_%s.npy" %num, imgI)
         
     return
@@ -89,21 +93,89 @@ if __name__ == '__main__':
 
         print "Saving intensity profiles to temp/%s_rI.npy" % dir_pI
         np.save(system['map_path'] + 'temp/%s_rI.npy' % dir_pI, rI_mtx)
+
         
+    if sys.argv[1] == 'profile_ind':
+
+        # retrieve ordered file lists for indexed images and intensities
+        dir_pI, n_bins = sys.argv[3], int(sys.argv[4])
+        file_glob = glob.glob(system["map_path"] + "indexed/*.npy")
+        filelist = sorted(file_glob, key = lambda name: int(name.split('_')[-1].split('.')[0]))
+
+        if dir_pI != 'indexed':
+            I_glob = glob.glob(system["map_path"] + dir_pI + "/*.npy")
+            Ilist = sorted(I_glob, key = lambda name: int(name.split('_')[-1].split('.')[0]))
+
+        output_dir = system['map_path'] + 'temp/rI/'
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+            
+        for i in range(len(filelist)):
+
+            savename = system['map_path'] + 'temp/rI/rI_%s.npy' %(filelist[i].split('_')[-1].split('.')[0])
+            if not os.path.isfile(savename):
+                start_time = time.time()
+                
+                indexed = np.load(filelist[i])
+                if dir_pI != 'indexed':
+                    assert filelist[i].split('_')[-1].split('.')[0] == Ilist[i].split('_')[-1].split('.')[0]
+                    imgI = np.load(Ilist[i])
+                    indexed[:,-1] = imgI
+
+                img_num = int(filelist[i].split('_')[-1].split('.')[0])
+                rS, rI = map_utils.ind_rprofile(system, indexed, n_bins, img_num, median=False)
+                rSI = np.vstack((rS, rI))
+
+                np.save(savename, rSI)
+                print "computed for image %i; elapsed time is %.3f" %(img_num, (time.time() - start_time)/60.0)
+
+
+    if sys.argv[1] == 'compile_ind':
+
+        dir_pI, n_bins = sys.argv[3], int(sys.argv[4])
+
+        # collect individual files
+        file_glob = glob.glob(system["map_path"] + "temp/rI/rI*.npy")
+        filelist = sorted(file_glob, key = lambda name: int(name.split('_')[-1].split('.')[0]))
+        n_files = len(filelist)
+
+        # compute mean resolution array of individual files
+        r_array = np.zeros((n_files, n_bins))
+        for i in range(n_files):
+            print "on profile %i" %i
+            r_array[i] = np.load(system['map_path'] + 'temp/rI/rI_%s.npy' %(filelist[i].split('_')[-1].split('.')[0]))[0]
+        r_mean = np.mean(r_array.T, axis=1)
+
+        # interpolate all profiles onto mean resolution array
+        rI_mtx = np.zeros((n_files + 1, n_bins))
+        for i in range(n_files):
+            print "on profile %i" %i
+            rI_array = np.load(system['map_path'] + 'temp/rI/rI_%s.npy' %(filelist[i].split('_')[-1].split('.')[0]))
+            rI_mtx[i + 1] = np.interp(r_mean, rI_array[0], rI_array[1])
+        rI_mtx[0] = r_mean
+        
+        print "Saving intensity profiles to temp/%s_rI.npy" % dir_pI
+        np.save(system['map_path'] + 'temp/%s_rI.npy' % dir_pI, rI_mtx)
+
     if sys.argv[1] == 'remove':
         
         # generate background dictionary
         dir_pI, rI_input = sys.argv[3], np.load(sys.argv[4])
         gb = ep.GenerateBackground(system)
         
-        opt_par = gb.opt_paratone(rI_input.copy())
-        sort_evals, sort_evecs, proj_data = gb.run_pca(opt_par.copy())
-        n_eig = 2
-        opt_pca = gb.pca_params(opt_par.copy(), n_eig, sort_evals, sort_evecs, proj_data)
+        opt_par = gb.opt_paratone(rI_input.copy()) ## used for CypA, KSI
+        sort_evals, sort_evecs, proj_data = gb.run_pca(opt_par.copy()) ## used for CypA, KSI
+        n_eig = 2 ## 2 used for CypA, 1 for KSI at 228 K, 2 for KSI at 293 K
+        opt_pca = gb.pca_params(opt_par.copy(), n_eig, sort_evals, sort_evecs, proj_data) ## used for CypA, KSI 
 
+        #sort_evals, sort_evecs, proj_data = gb.run_pca(rI_input.copy()) ## used for wrpa
+        #n_eig = 1 ## used for wrpa
+        #rI_output = gb.pca_params(rI_input.copy(), n_eig, sort_evals.real, sort_evecs.real, proj_data) ## used for wrpa
+        
         # checks of background strategy
         print "Num. PCs chosen explain %.2f percent of the variance" %(np.sum(sort_evals[:n_eig])/np.sum(sort_evals))
-        plot_strategy(rI_input, opt_par, opt_pca)
+        #np.save(system['map_path'] + "temp/rI_processed.npy", rI_output.copy()) 
+        plot_strategy(rI_input, opt_par, opt_pca) ## used for CypA, KSI
 
         # apply background dictionary
         output_dir = system['map_path'] + "processedI/"

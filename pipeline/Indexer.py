@@ -115,7 +115,7 @@ class Indexer:
 
         # rotate orientation matrix and compute hkl
         rot_mat = map_utils.rotation_matrix(self.system['rot_axis'], \
-                                                -1*np.deg2rad(self.system['rot_phi']*(image_num-1)+self.system['rot_phi']))
+                                                -1*np.deg2rad(self.system['rot_phi']*(image_num - self.system['start_image'])+self.system['start_phi']+self.system['rot_phi']))
         rot_cryst = np.dot(self.system['A_batch'][self.system['img2batch'][image_num]], rot_mat)
         hkl = np.inner(rot_cryst, S).T
         if 'xds_path' in self.system.keys():
@@ -184,12 +184,13 @@ class Indexer:
         """
 
         # apply mask and corrections factors
+        intensities = intensities.astype(float)
         if 'mask' in self.system.keys():
             intensities[ ~self.system['mask'] ] = -1
-        intensities = intensities.flatten().astype(float)
+        intensities = intensities.flatten()
         if 'scales' in self.system.keys():
             #intensities /= self.system['scales'][image_num - 1]
-            intensities *= self.system['scales'][image_num - 1]
+            intensities *= self.system['scales'][image_num - self.system['start_image']]
         if 'solid_angle' in self.system.keys():
             intensities /= self.system['solid_angle']
         if 'polarization' in self.system.keys():

@@ -1,3 +1,4 @@
+import map_utils
 import matplotlib, sys, os.path
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -38,8 +39,6 @@ def plotI(num, system, smags, I0, I1, I2):
 
 def process_files(system, filelist):
 
-    A_inv = np.linalg.inv(np.diag(system['cell'][:3]))
-
     for i in range(len(filelist)):
         print "on image %i" %i
         num = filelist[i].split('_')[-1].split('.')[0]
@@ -47,8 +46,9 @@ def process_files(system, filelist):
         indexed = np.load(system["map_path"] + "indexed/hklI_%s.npy" %num)
         bmask = np.load(filelist[i])
         gmask = np.load(system["map_path"] + "maskedI/pI_%s.npy" %num)
-        smags = np.linalg.norm(np.inner(A_inv, indexed[:,:3]).T, axis=1)
-
+        #smags = np.linalg.norm(np.inner(A_inv, indexed[:,:3]).T, axis=1)
+        smags = 1.0/map_utils.compute_resolution(system['space_group'], system['cell'], indexed[:,:3])
+        
         plotI(num, system, smags, indexed[:,-1], bmask, gmask)
 
     return

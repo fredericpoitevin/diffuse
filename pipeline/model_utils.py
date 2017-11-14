@@ -51,156 +51,119 @@ def retrieve_bfactors(pdb_path, as_delta = False):
         return np.sqrt(pdb_bfactors/8/np.square(np.pi))
 
 
-def generate_symmates(symm_ops, system, laue=True):
+def symmetrize(system, symm_ops, input_map, laue = True, from_asu = True):
     """
-    Return a dictionary of np.arrays such that the nth term of each array is a set of
-    symmetry-equivalent indices in raveled format. Also return the corresponding set 
-    of hkl vectors and multiplicities.
+    Symmetrize input_map based on dictionary of symmetry operations specified in symm_ops.
+    Boolean flags set whether to 1. symmetrize Laue-equivalent voxels only or both Laue-
+    equivalents and Friedel pairs and 2. whether input_map is derived from an ASU or unit 
+    cell; in the former case, the incoherent sum of all ASUs is returned, and in the latter,
+    symmetry-equivalent voxels are averaged. Map specifications are provided in system input.
 
-    Inputs: symm_ops, dictionary containing symmetry operators
-            system, dictionary containing bins, space_group, nad subsampling information
-            laue, bool, if True, do not return Friedel-equivalents. default: True.
-    Outputs: symm_idx, dict of np.arrays of symmetry-equivalent indices
-             grid, np.array of hkl vectors
-             multiplicities, np.array of multiplicities
+    Inputs: system, dictionary with map specifications (space group, cell, bins, d/max res.)
+            symm_ops, dictionary of symmetry operations; second half of keys are Friedels
+            input_map, map to be symmetrized
+            laue, boolean flag. if True, also symmetrize Friedel pairs
+            from_asu, boolean flag. if True, sum rather than average equivalent voxels
+    Outputs: symm_map, symmetrized map
+             multiplicities, multiplicities of each voxel in symm_map
+
     """
-
+    
+    space_group = system['space_group']
     grid = np.array(list(itertools.product(system['bins']['h'], system['bins']['k'], system['bins']['l'])))
 
-    # valid for orthorhombic, cubic, hexagonal
-    if ((system['space_group'] >= 16) and (system['space_group'] <=142)) or ((system['space_group'] >= 195) and (system['space_group'] <=230)):
+    mh, mk, ml = [np.max(system['bins'][key]) for key in ['h', 'k', 'l']]
+    lh, lk, ll = [len(system['bins'][key]) for key in ['h', 'k', 'l']]
+    if len(input_map.shape) == 1:
+        input_map = input_map.reshape(lh, lk, ll)
+
+    # valid for orthorhombic and tetragonal
+    if ((space_group >= 16) and (space_group <=142)) or ((space_group >= 195) and (space_group <=230)):
         expand = False
         bins = system['bins'].copy()
 
-    # for cases in which change of map dimensions is required
-    else:
+    # valid for hexagonal, possibly trigonal
+    elif (space_group >= 168) and (space_group <=194):
         expand = True
+        bins = dict()
+        bins['h'] = np.linspace(-mh - mk, mh + mk, lh + lk - 1)
+        bins['k'] = np.linspace(-mh - mk, mh + mk, lh + lk - 1)
+        bins['l'] = system['bins']['l']
 
-        # valid for hexagonal, possibly trigonal?
-        if (system['space_group'] >= 168) and (system['space_group'] <=194):
-            mh, mk, ml = [np.max(system['bins'][key]) for key in ['h', 'k', 'l']]
-            lh, lk, ll = [len(system['bins'][key]) for key in ['h', 'k', 'l']]
-
-            bins = dict()
-            bins['h'] = np.linspace(-mh - mk, mh + mk, lh + lk - 1)
-            bins['k'] = np.linspace(-mh - mk, mh + mk, lh + lk - 1)
-            bins['l'] = system['bins']['l']
-
-            if len(bins['h']) > len(bins['l']):
-                exp_grid = np.array(list(itertools.product(bins['h'], bins['h'], bins['h'])))
-            else:
-                exp_grid = np.array(list(itertools.product(bins['l'], bins['l'], bins['l'])))
-
-        else:
-            print 'Input space group not currently supported'
-            return
-
-    platform = np.max([np.max(bins[key]) for key in bins.keys()])
-    extent = np.max([len(bins[key]) for key in bins.keys()])
-
-    # assume that second half of symm_ops dict corresponds to Friedel pairs
-    if laue is True:
-        laue_keys = len(symm_ops.keys())/2
     else:
-        laue_keys = len(symm_ops.keys())
+        print "This space group is currently not supported"
+        return
 
-    symm_idx = dict()
-    for key in range(laue_keys):
-        
-        rot = np.inner(symm_ops[key], grid).T
+    # expand input map (for consistency with np.ravel_mult_index output)
+    extent = np.max([len(bins[key]) for key in bins.keys()])
+    cen = int(extent / 2)
+    expand_map = np.zeros((extent, extent, extent))
+    expand_map[cen-lh/2:cen+lh/2+1, cen-lk/2:cen+lk/2+1, cen-ll/2:cen+ll/2+1] = input_map
+    platform = np.max([np.max(bins[key]) for key in bins.keys()])
+
+    # if laue is True, use only first half of keys (Bijovet positive)
+    num_keys = len(symm_ops.keys())
+    if laue is True:
+        num_keys = len(symm_ops.keys())/2
+
+    # reduce grid to voxels that fall within map resolution
+    res = compute_resolution(system['space_group'], system['cell'], grid)
+    r_grid = grid[np.where(res > system['d'])[0]]
+
+    # generate symmetry mates for all voxels within map resolution
+    symm_idx = np.zeros((num_keys, r_grid.shape[0]))
+    for key in range(num_keys):
+        print "on key %i" %key
+
+        rot = np.inner(symm_ops[key], r_grid).T
         rot_bump = system['subsampling']*(rot + platform)
         rot_bump = np.around(rot_bump).astype(int)
 
         idx = np.ravel_multi_index(rot_bump.T, (extent, extent, extent))
-        if expand is False:
-            symm_idx[key] = np.argsort(idx)
-        else:
-            symm_idx[key] = idx
-            
-    # compute (ideal) multiplicities of each voxel
-    combined = np.zeros((len(symm_idx.keys()), len(symm_idx[0])))
-    for key in symm_idx.keys():
-        combined[key] = symm_idx[key]
-    multiplicities = np.array([len(np.unique(combined.T[i])) for i in range(combined.shape[1])])
+        symm_idx[key] = idx
 
-    # expand multiplicities to fit new map shape as needed
-    if expand is True:
-        mult_expand = np.zeros((extent*extent*extent))
-        for key in symm_idx.keys():
-            mult_expand[symm_idx[key]] = multiplicities
+    # retrieve column-aligned symmetry-equivalent values
+    symm_idx = symm_idx.astype(int)
+    vals = expand_map.flatten()[symm_idx]
 
-    if expand is False:
-        return symm_idx, grid, multiplicities
-    else:
-        return symm_idx, exp_grid, multiplicities, mult_expand
-
-
-def symmetrize(symm_idx, input_map, expand = False, from_asu = False):
-    """
-    Symmetrize input map according to the symmetry-equivalent indices encoded in symm_idx.
-    Inputs: input_map, unsymmetrized map
-            symm_idx, dictionary of equivalent indices from generate_symmates
-            expand, bool, True for cases in which symmetrization expands the map dimensions
-            from_asu, bool, if True, sum rather than average symmetry-equivalent voxels
-    Outputs: symm_map, symmetrized map
-             map_shape, shape of symm_map (possibly expanded from original dimensions)
-             actual_mult, array of multiplicities adjusted for missing/empty voxels
-    """
-    
-    # convert symm_idx from dict of arrays to 2d array
-    combined = np.zeros((len(symm_idx.keys()), len(symm_idx[0])))
-    for key in symm_idx.keys():
-        combined[key] = symm_idx[key]
-    combined = combined.astype(int)
-
-    # expand final map as needed by padding input_map with zeros
-    if expand is True:
-        extent = 2*np.max([dim for dim in input_map.shape]) - 1
-        cen = extent / 2
-        exp_map = np.zeros((extent, extent, extent))
-
-        hdim, kdim, ldim = input_map.shape
-        exp_map[cen-hdim/2:cen+hdim/2+1, cen-kdim/2:cen+kdim/2+1, cen-ldim/2:cen+ldim/2+1] = input_map
-        input_map = exp_map
-
-    # generate array of symm-equivalent values and compute actual multiplicities
-    vals = input_map.flatten()[combined]
-    n_nonzero = np.count_nonzero(vals.T, axis=1)
-    #actual_mult = mult - mult.astype(float)/np.max(mult)*(np.max(mult) - n_nonzero)
-
-    # average values if not from ASU; otherwise, sum
+    # average values if not from asu; otherwise, sum
     if from_asu is False:
         vals[vals==0] = np.nan
-        symm_map = np.nanmean(vals.T, axis=1)
-        symm_map[np.isnan(symm_map)] = 0
+        symm_vals = np.nanmean(vals.T, axis=1)
+        symm_vals[np.isnan(symm_vals)] = 0
     else:
-        symm_map = np.sum(vals.T, axis=1)
+        symm_vals = np.sum(vals.T, axis=1)
 
-    # populate symmetry-equivalent voxels not initially represented for expanded maps
-    if expand is True:
-        map_laue = np.zeros(input_map.shape).flatten()
-        for key in symm_idx.keys():
-            map_laue[symm_idx[key]] = symm_map
-        symm_map = map_laue
+    symm_map = np.zeros_like(input_map.flatten())
+    symm_map[np.where(res > system['d'])[0]] = symm_vals
 
-        # return re-sized input map if expand is True for ease of calculating CC
-        return symm_map, input_map.shape, n_nonzero, input_map
+    # generate multiplicities array; set 0 values to max value to avoid downstream problems
+    m_partial = np.array([len(np.unique(symm_idx.T[i])) for i in range(symm_idx.shape[1])])
+    multiplicities = np.zeros_like(input_map.flatten())
+    multiplicities[np.where(res > system['d'])[0]] = m_partial
+    multiplicities[multiplicities==0] = np.max(m_partial)
 
-    return symm_map, input_map.shape, n_nonzero
+    return symm_map, multiplicities
 
 
-def generate_mesh(system):
+def deorth_matrix(system):
     """
-    Generate qvector mesh for use with plt.pcolormesh from A matrix and bins.
+    Compute deorthogonalization matrix from cell constants. Equation for this matrix, M, here:
+    http://www.ruppweb.org/Xray/tutorial/Coordinate%20system%20transformation.htm.
     """
-    A_inv = np.linalg.inv(np.diag(system['cell'][:3]))
 
-    mesh = dict()
-    mesh['projX'] = np.meshgrid(2*np.pi*np.dot(A_inv[2][2], system['bins']['l']), 2*np.pi*np.dot(A_inv[1][1], system['bins']['k']))
-    mesh['projY'] = np.meshgrid(2*np.pi*np.dot(A_inv[2][2], system['bins']['l']), 2*np.pi*np.dot(A_inv[0][0], system['bins']['h']))
-    mesh['projZ'] = np.meshgrid(2*np.pi*np.dot(A_inv[1][1], system['bins']['k']), 2*np.pi*np.dot(A_inv[0][0], system['bins']['h']))
+    a, b, c, alpha, beta, gamma = system['cell']
+    alpha, beta, gamma = np.deg2rad(alpha), np.deg2rad(beta), np.deg2rad(gamma)
 
-    return mesh
+    V = a*b*c*np.sqrt(1.0 - np.square(np.cos(alpha)) - np.square(np.cos(beta)) \
+                      - np.square(np.cos(gamma)) + 2.0*np.cos(alpha)*np.cos(beta)*np.cos(gamma))
+    M = np.array([[1.0/a, -np.cos(gamma)/(a*np.sin(gamma)), \
+                   ((b*c*np.cos(gamma)*(np.cos(alpha) - np.cos(beta)*np.cos(gamma)))/np.sin(gamma) \
+                    - b*c*np.cos(beta)*np.sin(gamma))*(1.0/V)],
+                  [0, 1.0/(b*np.sin(gamma)), -1.0*a*c*(np.cos(alpha) - np.cos(beta)*np.cos(gamma))/(V*np.sin(gamma))],
+                  [0, 0, a*b*np.sin(gamma)/V]])
+
+    return M
 
 
 def generate_extents(system):
@@ -208,9 +171,9 @@ def generate_extents(system):
     Generate dictionary of tuples to be used for plotting with plt.imshow.
     """
     
-    A_inv = np.linalg.inv(np.diag(system['cell'][:3]))
+    A_inv = deorth_matrix(system)
     hkl_grid = np.array(list(itertools.product(system['bins']['h'], system['bins']['k'], system['bins']['l'])))
-    q_vecs = 2*np.pi*np.inner(A_inv, hkl_grid).T
+    q_vecs = 2*np.pi*np.inner(A_inv.T, hkl_grid).T
 
     max_h, max_k, max_l = [np.max(q_vecs[:,i]) for i in range(3)]
     extent = dict()
@@ -227,10 +190,10 @@ def compute_qmags(system):
     in the system.pickle file.
     """
     
-    A_inv = np.linalg.inv(np.diag(system['cell'][:3]))
+    A_inv = deorth_matrix(system)
     hkl_grid = np.array(list(itertools.product(system['bins']['h'], system['bins']['k'], system['bins']['l'])))
     
-    q_vecs = 2*np.pi*np.inner(A_inv, hkl_grid).T 
+    q_vecs = 2*np.pi*np.inner(A_inv.T, hkl_grid).T 
     return np.linalg.norm(q_vecs, axis=1)
 
 
@@ -308,8 +271,12 @@ def subtract_radavg(system, input_map, bin_width = None, medians = False):
         xm = np.array([np.median(x[np.where(dx == i)]) for i in range(np.min(dx), np.max(dx)+1)])
         ym = np.array([np.median(y[np.where(dx == i)]) for i in range(np.min(dx), np.max(dx)+1)])
 
+    # dealing with case where some bins are empty
+    xm_real = np.delete(xm, np.where((np.isnan(xm)) | (np.isnan(ym)))[0])
+    ym_real = np.delete(ym, np.where((np.isnan(xm)) | (np.isnan(ym)))[0])
+
     # subtract radial average
-    masked_sub = y - np.interp(x, xm, ym)
+    masked_sub = y - np.interp(x, xm_real, ym_real)
     aniso_map = np.zeros(hkl_res.shape)
     aniso_map[input_map.flatten()>0] = masked_sub - np.min(masked_sub) + np.min(y)
     
@@ -331,13 +298,12 @@ def mweighted_cc(map1, map2, mult = None):
     # process multiplicities array, generating one with equal weights if not given
     if mult is None:
         mult = np.ones(map1.shape).flatten()
-    mult = 1.0/mult
-    mult /= np.sum(mult)
 
     # only consider voxels with valid (positive) intensities                                                                                                              
     map1_sel, map2_sel = map1.copy().flatten(), map2.copy().flatten()
     valid_idx = np.where((map1_sel > 0) & (map2_sel > 0))[0]
     map1_sel, map2_sel, mult_sel = map1_sel[valid_idx], map2_sel[valid_idx], mult[valid_idx]
+    mult_sel /= float(np.sum(mult_sel))
 
     return w_cov(map1_sel, map2_sel, mult_sel) / np.sqrt(w_cov(map1_sel, map1_sel, mult_sel) * w_cov(map2_sel, map2_sel, mult_sel))
 

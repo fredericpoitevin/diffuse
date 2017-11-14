@@ -1,4 +1,4 @@
-import itertools, math, os.path, glob
+import itertools, math, os.path, glob, model_utils
 import cPickle as pickle
 import numpy as np
 
@@ -100,7 +100,7 @@ def determine_map_bins(cell_constants, space_group, d, subsampling):
     return bins
 
 
-def ind_rprofile(system, indexed, n_bins, num = -1, median=False):
+def ind_rprofile(system, indexed, n_bins, num, median=False):
     """
     Compute radial intensity profile for an indexed image.
     Inputs: system, dictionary that contains cell dimensions
@@ -113,12 +113,7 @@ def ind_rprofile(system, indexed, n_bins, num = -1, median=False):
     """
 
     # compute magnitude of scattering vector
-    if num == -1:
-        A_inv = np.linalg.inv(np.diag(system['cell'][:3]))
-    else:
-        #A_inv = np.linalg.inv(system['A_batch'][(num - 1)/system['batch_size']])
-        A_inv = np.linalg.inv(system['A_batch'][system['img2batch'][num]])
-
+    A_inv = model_utils.deorth_matrix(system)    
     s_vecs = np.inner(A_inv, indexed[:,:3]).T
     s_mags = np.linalg.norm(s_vecs, axis=1)
 
