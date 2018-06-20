@@ -1,0 +1,6 @@
+/home/stanford/levittm/users/fpoitevi/Toolkit/dials-installer/base/lib/python2.7/site-packages/numpy/core/fromnumeric.py:2909: RuntimeWarning: Mean of empty slice.
+  out=out, **kwargs)
+/home/stanford/levittm/users/fpoitevi/Toolkit/dials-installer/base/lib/python2.7/site-packages/numpy/core/_methods.py:73: RuntimeWarning: invalid value encountered in true_divide
+  ret, rcount, out=ret, casting='unsafe', subok=False)
+slurmstepd: error: Exceeded job memory limit at some point.
+slurmstepd: error: Exceeded job memory limit at some point.

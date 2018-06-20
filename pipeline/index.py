@@ -123,7 +123,9 @@ if __name__ == '__main__':
     
     start = time.time()
     system = pickle.load(open(sys.argv[1]+"system.pickle"))
-    
+    # temp edit by FP
+    print(system['image_type'])   
+ 
     output_dir = sys.argv[1]+"indexed/"
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
