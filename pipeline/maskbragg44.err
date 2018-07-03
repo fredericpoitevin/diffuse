@@ -1,0 +1,2 @@
+/home/stanford/levittm/users/fpoitevi/Toolkit/diffuse/pipeline/MaskBragg.py:100: RuntimeWarning: invalid value encountered in sqrt
+  pstar_d_m1 = np.sqrt(rho_sq - pstar_d_m3**2)

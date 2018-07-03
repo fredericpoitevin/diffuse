@@ -1,0 +1,10 @@
+/home/stanford/levittm/users/fpoitevi/Toolkit/diffuse/pipeline/MaskBragg.py:100: RuntimeWarning: invalid value encountered in sqrt
+  pstar_d_m1 = np.sqrt(rho_sq - pstar_d_m3**2)
+slurmstepd: error: Step 1477464.0 exceeded memory limit (24582540 > 24576000), being killed
+slurmstepd: error: *** STEP 1477464.0 ON xs-0049 CANCELLED AT 2018-06-23T07:22:22 ***
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd: error: Exceeded job memory limit at some point.
+slurmstepd: error: Exceeded job memory limit
+slurmstepd: error: Exceeded job memory limit
+slurmstepd: error: *** JOB 1477464 ON xs-0049 CANCELLED AT 2018-06-23T07:22:22 ***
+slurmstepd: error: Exceeded job memory limit at some point.

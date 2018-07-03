@@ -94,11 +94,11 @@ if __name__ == '__main__':
     system = pickle.load(open(sys.argv[2]))
 
     if sys.argv[1] == 'generate':
-        print "generating bragg masks, processing batch %s" %sys.argv[6]
-        sigma_nd, sigma_nm, nbatch = float(sys.argv[3]), float(sys.argv[4]), int(sys.argv[6])
+        print "generating bragg masks, processing batch %s" %sys.argv[5]
+        sigma_n, nbatch = float(sys.argv[3]), int(sys.argv[5])
         assert (nbatch >= 0) and (nbatch < system['n_batch'])
-        bm_obj = mb.PredictBragg(system, nbatch, sys_absences = sys.argv[5])
-        bm_obj.pred_pixels(sigma_nd, sigma_nm)
+        bm_obj = mb.PredictBragg(system, nbatch, sys_absences = sys.argv[4])
+        bm_obj.pred_pixels(sigma_n)
 
     if sys.argv[1] == 'compile':
         print "compiling bragg masks"

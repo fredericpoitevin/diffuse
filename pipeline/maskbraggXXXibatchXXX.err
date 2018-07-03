@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "mask_bragg.py", line 121, in <module>
+    apply_masks(system, output_dir, bragg_sigma, outlier_sigma, length, n_bins)
+  File "mask_bragg.py", line 79, in apply_masks
+    maskedI = bm_obj.ms_threshold(bragg_sigma)
+  File "/home/stanford/levittm/users/fpoitevi/Toolkit/diffuse/pipeline/MaskBragg.py", line 328, in ms_threshold
+    masked_I, window_I, window_mask, dtc_idx = self._set_up()
+  File "/home/stanford/levittm/users/fpoitevi/Toolkit/diffuse/pipeline/MaskBragg.py", line 304, in _set_up
+    dtc_idx = np.zeros((n_centers, np.square(2*self.extent)), dtype=int)
+TypeError: 'numpy.float64' object cannot be interpreted as an index
+srun: error: xs-0002: task 0: Exited with exit code 1

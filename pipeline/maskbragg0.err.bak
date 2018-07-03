@@ -1,0 +1,6 @@
+/home/stanford/levittm/users/fpoitevi/Toolkit/diffuse/pipeline/MaskBragg.py:100: RuntimeWarning: invalid value encountered in sqrt
+  pstar_d_m1 = np.sqrt(rho_sq - pstar_d_m3**2)
+/home/stanford/levittm/users/fpoitevi/Toolkit/diffuse/pipeline/./run_mask_bragg.sh: line 6: 180320 Killed                  dials.python mask_bragg.py generate /cstor/stanford/levittm/users/fpoitevi/diffuse/jobs/A3_4/exp/system.pickle 3 5 420 $1
+slurmstepd: error: Exceeded job memory limit at some point.
+srun: error: xs-0013: task 0: Exited with exit code 137
+slurmstepd: error: Exceeded job memory limit at some point.

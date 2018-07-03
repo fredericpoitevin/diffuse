@@ -110,6 +110,12 @@ class PredictBragg:
             phi1[mask] = 1000 # arbritrary number beyond what will be covered by experiment
             phi2[mask] = 1000
 
+            # wrap phi beyond 180, whose Bragg may be partially observed on final images
+            wrap_idx1 = np.where(phi1<-170)[0]
+            wrap_idx2 = np.where(phi2<-170)[0]
+            phi1[wrap_idx1] += 360
+            phi2[wrap_idx2] += 360
+
             # determine which Miller indices will be observed in this batch
             idx = np.where(np.array(self.system['img2batch'].values()) == batch)[0]
             bps, l_idx, u_idx = len(idx)*self.system['rot_phi'], idx[0] + 1, idx[-1] + 1
@@ -121,18 +127,6 @@ class PredictBragg:
             if batch == self.system['n_batch'] - 1:
                 upper += bps
 
-            # wrap phi such that extends through all four quadrants
-            if upper < 350:
-                wrap_idx1 = np.where(phi1<0)[0]
-                wrap_idx2 = np.where(phi2<0)[0]
-                phi1[wrap_idx1] += 360
-                phi2[wrap_idx2] += 360
-            else:
-                wrap_idx1 = np.where(phi1<90)[0]
-                wrap_idx2 = np.where(phi2<90)[0]
-                phi1[wrap_idx1] += 360
-                phi2[wrap_idx2] += 360
-                
             idx1 = np.where((phi1 >= lower) & (phi1 < upper))[0]
             idx2 = np.where((phi2 >= lower) & (phi2 < upper))[0]
             hkl_phi1 = np.column_stack((hkl[idx1], phi1[idx1]))
@@ -215,7 +209,7 @@ class PredictBragg:
 
         return
     
-    def pred_pixels(self, sigma_nd, sigma_nm):
+    def pred_pixels(self, sigma_n):
         """ 
         Predict extent/shape of Bragg peaks, basd on approach described by Kabsch, W. Acta Cryst,
         D66. 2010. Returns an array with shape of (frames, flattened detector), where 1 and 10 indicate
@@ -223,7 +217,7 @@ class PredictBragg:
         """
 
         # set tolerances; sigma_d and sigma_m from SYSTEM
-        delta_d, delta_m = self.system['sigma_d']*sigma_nd, self.system['sigma_m']*sigma_nm
+        delta_d, delta_m = self.system['sigma_d']*sigma_n, self.system['sigma_m']*sigma_n
         s1_batch = self.predicted[:, -3:]
         s1_batch_norm = np.linalg.norm(s1_batch, axis=1)
 
@@ -250,6 +244,7 @@ class PredictBragg:
 
         # predict detector coordinates that each miller will span
         counter = 0
+        stime = time.time()
         for idx in np.unique(frames[0]):
             
             eps1 = 180*np.inner(e1[idx], sdash - s1_batch[idx])/(np.pi*s1_batch_norm[idx]) 
@@ -267,6 +262,8 @@ class PredictBragg:
                 if counter < 200:
                     print idx, ' '.join(map(str, self.predicted[idx, :4])), xcen, ycen, len(images), len(xy_obs)
                     counter += 1
+                else:
+                    print "elapsed time is %f for 200 of %i reflections" %((time.time() - stime)/60.0, len(np.unique(frames[0])))
 
         self._save_masks(rs_mask)
                 
@@ -373,10 +370,9 @@ class ApplyMask:
         s_mags = np.linalg.norm(rot_svecs, axis=1)
 
         x, y = s_mags, imgI.copy()
-        if ('s_mask' in self.system.keys()) & ('s_mask_img' in self.system.keys()):
-            if (self.num in self.system['s_mask_img']):
-                print "applying special mask"
-                y[~self.system['s_mask'].flatten()] = 0
+        if ('s_mask' in self.system.keys()) & (self.num in self.system['s_mask_img']):
+            print "applying special mask"
+            y[~self.system['s_mask'].flatten()] = 0
 
         n_per_shell, shells = np.histogram(x[y > 0], bins = n_bins)
         shells = np.concatenate((shells, [shells[-1] + (shells[-1] - shells[-2])]))
@@ -396,11 +392,9 @@ class ApplyMask:
         imgI[np.where(imgI > threshold_int)] = -1
 
         # for pixels in the 'special mask' area, set a lower threshold and remove as necessary
-        if ('s_mask' in self.system.keys()) & ('s_mask_img' in self.system.keys()):
-            if (self.num in self.system['s_mask_img']):
-                lthreshold = ymedians + 2.5*ymad
-                #lthreshold_int = np.interp(s_mags, s_medians, lthreshold) # remove masked region based on some threshold
-                lthreshold_int = 0 # remove masked region entirely
-                imgI[np.where((imgI > lthreshold_int) & (self.system['s_mask'].flatten() == False))] = -1
+        if ('s_mask' in self.system.keys()) & (self.num in self.system['s_mask_img']):
+            lthreshold = ymedians + 2.5*ymad
+            lthreshold_int = np.interp(s_mags, s_medians, lthreshold)
+            imgI[np.where((imgI > lthreshold_int) & (self.system['s_mask'].flatten() == False))] = -1
 
         return imgI
